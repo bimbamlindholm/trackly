@@ -1,35 +1,42 @@
-import { createContext, useEffect, useState } from "react"
+import { createContext, useContext, useEffect, useState } from "react"
+import { AuthContext } from "./AuthContext"
 
 export const SalaryContext = createContext()
 
 function SalaryProvider({ children }) {
-  const [hourlyRate, setHourlyRate] = useState(() => {
-    const savedRate =
-      localStorage.getItem("trackly-hourly-rate")
+  const { user } = useContext(AuthContext)
 
-    return savedRate ? Number(savedRate) : 100
-  })
+  const userKey = user?.id || "guest"
 
-  const [hoursPerDay, setHoursPerDay] = useState(() => {
-    const savedHours =
-      localStorage.getItem("trackly-hours-per-day")
+  const [hourlyRate, setHourlyRate] = useState(100)
+  const [hoursPerDay, setHoursPerDay] = useState(8)
 
-    return savedHours ? Number(savedHours) : 8
-  })
+  useEffect(() => {
+    const savedRate = localStorage.getItem(
+      `trackly-hourly-rate-${userKey}`
+    )
+
+    const savedHours = localStorage.getItem(
+      `trackly-hours-per-day-${userKey}`
+    )
+
+    setHourlyRate(savedRate ? Number(savedRate) : 100)
+    setHoursPerDay(savedHours ? Number(savedHours) : 8)
+  }, [userKey])
 
   useEffect(() => {
     localStorage.setItem(
-      "trackly-hourly-rate",
+      `trackly-hourly-rate-${userKey}`,
       hourlyRate
     )
-  }, [hourlyRate])
+  }, [hourlyRate, userKey])
 
   useEffect(() => {
     localStorage.setItem(
-      "trackly-hours-per-day",
+      `trackly-hours-per-day-${userKey}`,
       hoursPerDay
     )
-  }, [hoursPerDay])
+  }, [hoursPerDay, userKey])
 
   return (
     <SalaryContext.Provider
