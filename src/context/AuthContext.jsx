@@ -58,6 +58,7 @@ function AuthProvider({ children }) {
         email,
         full_name,
         role,
+        membership_status,
         department,
         position,
         organizations (

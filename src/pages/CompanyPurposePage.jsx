@@ -22,19 +22,19 @@ function CompanyPurposePage() {
             to="/register?type=company-admin&next=/company-setup"
           >
             <span>Admin</span>
-            <h3>I will manage the company</h3>
+            <h3>Set up company workspace</h3>
             <p>
-              Create a company workspace, create staff folders, and generate
-              invite links for your team.
+              Create teams or branches, generate staff invite links, review
+              attendance, and export payroll-ready reports.
             </p>
           </Link>
 
           <Link className="choice-card" to="/company/join">
             <span>Staff</span>
-            <h3>I have an invite link</h3>
+            <h3>Join my company team</h3>
             <p>
               Paste the link from your admin to connect your account to the
-              correct staff folder.
+              correct team or branch.
             </p>
           </Link>
         </div>

@@ -29,6 +29,7 @@ create table if not exists public.organization_members (
   email text not null,
   full_name text default '',
   role text not null default 'worker' check (role in ('admin', 'manager', 'worker')),
+  membership_status text not null default 'active' check (membership_status in ('active', 'archived')),
   department text default 'Unassigned',
   position text default 'Worker',
   created_at timestamptz not null default now(),
@@ -54,6 +55,14 @@ alter table public.organization_invites enable row level security;
 alter table public.attendance_records enable row level security;
 alter table public.user_salary_settings enable row level security;
 
+alter table public.organization_members
+  add column if not exists membership_status text not null default 'active'
+  check (membership_status in ('active', 'archived'));
+
+alter table public.attendance_records
+  add column if not exists photo_data_url text,
+  add column if not exists photo_captured_at timestamptz;
+
 create or replace function public.handle_new_user_profile()
 returns trigger
 language plpgsql
@@ -75,6 +84,7 @@ begin
   update public.organization_members
   set user_id = new.id,
       full_name = coalesce(nullif(full_name, ''), new.raw_user_meta_data->>'full_name', full_name),
+      membership_status = 'active',
       updated_at = now()
   where lower(email) = lower(new.email)
     and user_id is null;
@@ -231,6 +241,7 @@ to authenticated
 with check (
   lower(email) = lower(auth.jwt()->>'email')
   and role = 'worker'
+  and membership_status = 'active'
   and exists (
     select 1
     from public.organization_invites

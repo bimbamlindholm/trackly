@@ -114,6 +114,7 @@ function CompanyAdminPage() {
           email: normalizedEmail,
           full_name: inviteName.trim() || normalizedEmail,
           role: "worker",
+          membership_status: "active",
           department: inviteDepartment.trim() || "Unassigned",
           position: invitePosition.trim() || "Worker",
         },
@@ -131,6 +132,7 @@ function CompanyAdminPage() {
         email: normalizedEmail,
         full_name: inviteName.trim() || normalizedEmail,
         role: "worker",
+        membership_status: "active",
         department: inviteDepartment.trim() || "Unassigned",
         position: invitePosition.trim() || "Worker",
       },
@@ -165,6 +167,65 @@ function CompanyAdminPage() {
     }
 
     setFolderInviteLink(`${window.location.origin}/company/join/${token}`)
+  }
+
+  const updateWorkerStatus = async (worker, membershipStatus) => {
+    const workerMember = members.find((item) => item.email === worker.email)
+
+    if (!workerMember?.id) {
+      alert("This worker does not have a company membership record yet.")
+      return
+    }
+
+    const { error: updateError } = await supabase
+      .from("organization_members")
+      .update({ membership_status: membershipStatus })
+      .eq("id", workerMember.id)
+
+    if (updateError) {
+      alert(updateError.message)
+      return
+    }
+
+    setMembers((currentMembers) =>
+      currentMembers.map((member) =>
+        member.id === workerMember.id
+          ? { ...member, membership_status: membershipStatus }
+          : member
+      )
+    )
+  }
+
+  const removeWorker = async (worker) => {
+    const workerMember = members.find((item) => item.email === worker.email)
+
+    if (!workerMember?.id) {
+      alert("This worker does not have a company membership record yet.")
+      return
+    }
+
+    const confirmed = window.confirm(
+      `Remove ${worker.name} from this company workspace? Their account and personal records will stay, but this admin view will no longer manage them.`
+    )
+
+    if (!confirmed) return
+
+    const { error: deleteError } = await supabase
+      .from("organization_members")
+      .delete()
+      .eq("id", workerMember.id)
+
+    if (deleteError) {
+      alert(deleteError.message)
+      return
+    }
+
+    setMembers((currentMembers) =>
+      currentMembers.filter((member) => member.id !== workerMember.id)
+    )
+    setRecords((currentRecords) =>
+      currentRecords.filter((record) => record.user_email !== worker.email)
+    )
   }
 
   const filteredRecords = useMemo(() => {
@@ -231,6 +292,7 @@ function CompanyAdminPage() {
           email,
           name: workerMember?.full_name || workerProfile?.full_name || email,
           role: workerMember?.role || workerProfile?.role || "worker",
+          membershipStatus: workerMember?.membership_status || "active",
           department:
             workerMember?.department ||
             workerProfile?.department ||
@@ -250,14 +312,18 @@ function CompanyAdminPage() {
   }, [filteredRecords, members, profiles, records, salaryByEmail])
 
   const companyTotals = workers.reduce(
-    (summary, worker) => ({
-      workers: summary.workers + 1,
-      records: summary.records + worker.recordCount,
-      netHours: summary.netHours + worker.totals.netHours,
-      overtimeHours: summary.overtimeHours + worker.totals.overtimeHours,
-      earnings: summary.earnings + worker.totals.earnings,
-      reviewDays: summary.reviewDays + worker.totals.reviewDays,
-    }),
+    (summary, worker) => {
+      if (worker.membershipStatus !== "active") return summary
+
+      return {
+        workers: summary.workers + 1,
+        records: summary.records + worker.recordCount,
+        netHours: summary.netHours + worker.totals.netHours,
+        overtimeHours: summary.overtimeHours + worker.totals.overtimeHours,
+        earnings: summary.earnings + worker.totals.earnings,
+        reviewDays: summary.reviewDays + worker.totals.reviewDays,
+      }
+    },
     {
       workers: 0,
       records: 0,
@@ -416,8 +482,8 @@ function CompanyAdminPage() {
         <form className="tracker-card login-form" onSubmit={createFolderInvite}>
           <h2>Create Staff Folder Invite</h2>
           <p>
-            Example: Aquaflask Sales Staff Harbor Point. Trackly generates a
-            link you can send to staff assigned to that folder.
+            Example: Aquaflask Sales Staff - Harbor Point. Trackly generates a
+            link you can send to staff assigned to that team.
           </p>
 
           <input
@@ -471,7 +537,9 @@ function CompanyAdminPage() {
                           : "status-pill"
                       }
                     >
-                      {worker.role}
+                      {worker.membershipStatus === "archived"
+                        ? "archived"
+                        : worker.role}
                     </span>
                   </div>
 
@@ -503,6 +571,36 @@ function CompanyAdminPage() {
                   {worker.totals.reviewDays > 0 && (
                     <div className="review-box compact-review">
                       <strong>{worker.totals.reviewDays} day(s) need review</strong>
+                    </div>
+                  )}
+
+                  {worker.role !== "admin" && (
+                    <div className="worker-actions">
+                      {worker.membershipStatus === "archived" ? (
+                        <button
+                          className="custom-button"
+                          type="button"
+                          onClick={() => updateWorkerStatus(worker, "active")}
+                        >
+                          Restore Staff
+                        </button>
+                      ) : (
+                        <button
+                          className="custom-button"
+                          type="button"
+                          onClick={() => updateWorkerStatus(worker, "archived")}
+                        >
+                          Archive Staff
+                        </button>
+                      )}
+
+                      <button
+                        className="delete-record-button"
+                        type="button"
+                        onClick={() => removeWorker(worker)}
+                      >
+                        Remove
+                      </button>
                     </div>
                   )}
                 </article>

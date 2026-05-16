@@ -18,7 +18,7 @@ function CompanySetupPage() {
   const { user, profile, activeOrganization, refreshProfile } =
     useContext(AuthContext)
   const [companyName, setCompanyName] = useState("")
-  const [folderName, setFolderName] = useState("General Staff")
+  const [folderName, setFolderName] = useState("General Team")
   const [department, setDepartment] = useState("Management")
   const [position, setPosition] = useState("Administrator")
   const [inviteLink, setInviteLink] = useState("")
@@ -61,6 +61,7 @@ function CompanySetupPage() {
             user.user_metadata?.full_name ||
             user.email,
           role: "admin",
+          membership_status: "active",
           department,
           position,
         },
@@ -121,8 +122,8 @@ function CompanySetupPage() {
             <h2>Create Company Workspace</h2>
             <p>
               The account creating the workspace becomes the first company
-              admin. Each company that installs Trackly can create its own
-              workspace.
+              admin. Start with one team or branch, then invite staff using a
+              generated link.
             </p>
 
             <input
@@ -142,7 +143,7 @@ function CompanySetupPage() {
 
             <input
               className="custom-input"
-              placeholder="First staff folder, e.g. Aquaflask Sales Staff Harbor Point"
+              placeholder="First team or branch, e.g. Aquaflask Sales Staff - Harbor Point"
               value={folderName}
               onChange={(event) => setFolderName(event.target.value)}
             />
@@ -160,7 +161,7 @@ function CompanySetupPage() {
 
             {inviteLink && (
               <div className="record-item">
-                <strong>First invite link generated</strong>
+                <strong>First team invite link generated</strong>
                 <p>{inviteLink}</p>
 
                 <button

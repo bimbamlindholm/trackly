@@ -751,6 +751,49 @@ select.custom-input {
   transform: none;
 }
 
+.auth-divider {
+  margin: 18px 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: rgba(255, 255, 255, 0.44);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.oauth-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.oauth-grid button {
+  min-height: 48px;
+  border: 1px solid rgba(125, 255, 156, 0.16);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.07);
+  color: white;
+  font-weight: 900;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease;
+}
+
+.oauth-grid button:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.1);
+}
+
 .switch {
   margin: 22px 0 0;
   color: rgba(255, 255, 255, 0.58);
@@ -847,6 +890,15 @@ select.custom-input {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.nav-group-label {
+  margin: 14px 8px 0;
+  color: rgba(121, 255, 156, 0.62);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
 }
 
 .sidebar-nav a {
@@ -1000,11 +1052,74 @@ select.custom-input {
   margin-top: 28px;
 }
 
+.time-mark-panel {
+  margin-top: 24px;
+  padding: 18px;
+  border: 1px solid rgba(125, 255, 156, 0.12);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.time-mark-panel h3 {
+  margin: 8px 0 6px;
+  color: white;
+}
+
+.camera-frame {
+  width: min(100%, 520px);
+  aspect-ratio: 16 / 10;
+  margin-top: 16px;
+  border: 1px solid rgba(125, 255, 156, 0.12);
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.camera-frame video,
+.camera-frame img,
+.record-photo {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.camera-actions,
+.worker-actions {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.camera-actions button,
+.worker-actions button {
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+  font-weight: 900;
+}
+
+.camera-actions .custom-button,
+.worker-actions .custom-button {
+  background: linear-gradient(135deg, #39d66f, #79ff9c);
+  color: #04120b;
+}
+
 .record-item {
   margin-top: 12px;
   padding: 16px;
   border-radius: 18px;
   color: white;
+}
+
+.record-photo {
+  max-width: 220px;
+  height: auto;
+  margin-top: 12px;
+  border-radius: 12px;
 }
 
 .status-panel {

@@ -17,6 +17,19 @@ function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
 
+  const handleOAuthRegister = async (provider) => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: `${window.location.origin}${nextPath}`,
+      },
+    })
+
+    if (error) {
+      alert(error.message)
+    }
+  }
+
   const handleRegister = async (e) => {
     e.preventDefault()
 
@@ -108,6 +121,19 @@ function RegisterPage() {
         <button className="main-button" type="submit" disabled={loading}>
           {loading ? "Creating Account..." : "Create Account"}
         </button>
+
+        <div className="auth-divider">
+          <span>or create with</span>
+        </div>
+
+        <div className="oauth-grid">
+          <button type="button" onClick={() => handleOAuthRegister("google")}>
+            Google
+          </button>
+          <button type="button" onClick={() => handleOAuthRegister("facebook")}>
+            Facebook
+          </button>
+        </div>
 
         <p className="switch">
           Already have an account?

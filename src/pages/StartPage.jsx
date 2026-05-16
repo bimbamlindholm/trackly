@@ -19,19 +19,19 @@ function StartPage() {
         <div className="choice-grid">
           <Link className="choice-card" to="/register?type=personal">
             <span>Personal</span>
-            <h3>For personal use</h3>
+            <h3>My own DTR</h3>
             <p>
-              Create your own account and track your personal DTR, salary, and
-              attendance history.
+              Track your own time-in, breaks, time-out, salary estimate, and
+              attendance history without company admin tools.
             </p>
           </Link>
 
           <Link className="choice-card" to="/company">
             <span>Company</span>
-            <h3>For company use</h3>
+            <h3>Team DTR system</h3>
             <p>
-              Create company folders, generate staff invite links, and monitor
-              employee DTR records.
+              Set up a company workspace, create teams, invite staff, and
+              monitor DTR records from one admin view.
             </p>
           </Link>
         </div>

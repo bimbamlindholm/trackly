@@ -8,7 +8,8 @@ import { supabase } from "../services/supabaseClient"
 function DashboardLayout({ children }) {
   const navigate = useNavigate()
 
-  const { user, isAdmin, activeOrganization } = useContext(AuthContext)
+  const { user, isAdmin, activeOrganization, activeMembership } =
+    useContext(AuthContext)
   const { setRecords } = useContext(AttendanceContext)
 
   const displayName =
@@ -35,12 +36,14 @@ function DashboardLayout({ children }) {
         <h2 className="logo">Trackly</h2>
 
         <nav className="sidebar-nav">
+          <span className="nav-group-label">My DTR</span>
           <NavLink to="/dashboard">Dashboard</NavLink>
           <NavLink to="/tracker">Time Tracker</NavLink>
           <NavLink to="/attendance">Attendance</NavLink>
           <NavLink to="/salary">Salary Tracker</NavLink>
+          <span className="nav-group-label">Company</span>
           <NavLink to="/company-setup">
-            {activeOrganization ? "Company" : "Create Company"}
+            {activeOrganization ? "Workspace" : "Set Up Workspace"}
           </NavLink>
           {isAdmin && <NavLink to="/admin">Company Admin</NavLink>}
           <NavLink to="/settings">Settings</NavLink>
@@ -55,7 +58,11 @@ function DashboardLayout({ children }) {
         <div className="topbar">
           <div>
             <h3>{displayName}</h3>
-            <p>{user?.email}</p>
+            <p>
+              {activeOrganization
+                ? `${activeOrganization.name} - ${activeMembership?.role || "member"}`
+                : user?.email}
+            </p>
           </div>
         </div>
 

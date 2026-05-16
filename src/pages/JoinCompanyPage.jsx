@@ -81,6 +81,7 @@ function JoinCompanyPage() {
         email: user.email,
         full_name: user.user_metadata?.full_name || user.email,
         role: "worker",
+        membership_status: "active",
         department: activeInvite.department,
         position: activeInvite.position || "Worker",
       },
@@ -89,6 +90,13 @@ function JoinCompanyPage() {
     setLoading(false)
 
     if (error) {
+      if (error.code === "23505") {
+        localStorage.removeItem("trackly-pending-invite")
+        await refreshProfile()
+        navigate("/dashboard")
+        return
+      }
+
       setMessage(error.message)
       return
     }
@@ -113,7 +121,7 @@ function JoinCompanyPage() {
           <h2>Enter your staff invite link</h2>
           <p>
             Use the link or code from your admin to connect your DTR records to
-            the right company folder.
+            the right company team or branch.
           </p>
 
           <input

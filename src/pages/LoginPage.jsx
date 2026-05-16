@@ -15,6 +15,19 @@ function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
 
+  const handleOAuthLogin = async (provider) => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: `${window.location.origin}${nextPath}`,
+      },
+    })
+
+    if (error) {
+      alert(error.message)
+    }
+  }
+
   const handleLogin = async (event) => {
     event.preventDefault()
     setLoading(true)
@@ -95,6 +108,19 @@ function LoginPage() {
         <button className="main-button" type="submit" disabled={loading}>
           {loading ? "Logging in..." : "Log In"}
         </button>
+
+        <div className="auth-divider">
+          <span>or continue with</span>
+        </div>
+
+        <div className="oauth-grid">
+          <button type="button" onClick={() => handleOAuthLogin("google")}>
+            Google
+          </button>
+          <button type="button" onClick={() => handleOAuthLogin("facebook")}>
+            Facebook
+          </button>
+        </div>
 
         <p className="switch">
           Don&apos;t have an account?

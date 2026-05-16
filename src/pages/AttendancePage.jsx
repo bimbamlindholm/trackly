@@ -419,6 +419,13 @@ function AttendancePage() {
                     <br />
                     Email: {record.user_email}
                     <br />
+                    {record.photo_data_url && (
+                      <img
+                        className="record-photo"
+                        src={record.photo_data_url}
+                        alt={`${record.type} time mark`}
+                      />
+                    )}
 
                     <button
                       className="custom-button"
