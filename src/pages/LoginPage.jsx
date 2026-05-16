@@ -9,6 +9,7 @@ function LoginPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const nextPath = searchParams.get("next") || "/dashboard"
+  const safeNextPath = nextPath.startsWith("/") ? nextPath : "/dashboard"
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -19,7 +20,7 @@ function LoginPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}${nextPath}`,
+        redirectTo: `${window.location.origin}${safeNextPath}`,
       },
     })
 
@@ -44,7 +45,7 @@ function LoginPage() {
       return
     }
 
-    navigate(nextPath)
+    navigate(safeNextPath)
   }
 
   return (
@@ -124,7 +125,7 @@ function LoginPage() {
 
         <p className="switch">
           Don&apos;t have an account?
-          <Link to={`/register?next=${encodeURIComponent(nextPath)}`}>
+          <Link to={`/register?next=${encodeURIComponent(safeNextPath)}`}>
             Register
           </Link>
         </p>

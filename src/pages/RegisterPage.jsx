@@ -9,6 +9,8 @@ function RegisterPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const nextPath = searchParams.get("next") || "/login"
+  const safeNextPath = nextPath.startsWith("/") ? nextPath : "/login"
+  const oauthNextPath = safeNextPath === "/login" ? "/dashboard" : safeNextPath
   const accountType = searchParams.get("type")
 
   const [name, setName] = useState("")
@@ -21,7 +23,7 @@ function RegisterPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}${nextPath}`,
+        redirectTo: `${window.location.origin}${oauthNextPath}`,
       },
     })
 
@@ -54,7 +56,7 @@ function RegisterPage() {
 
     alert("Registration successful!")
 
-    navigate(nextPath)
+    navigate(safeNextPath)
   }
 
   return (
@@ -137,7 +139,7 @@ function RegisterPage() {
 
         <p className="switch">
           Already have an account?
-          <Link to={`/login?next=${encodeURIComponent(nextPath)}`}>
+          <Link to={`/login?next=${encodeURIComponent(safeNextPath)}`}>
             Log In
           </Link>
         </p>

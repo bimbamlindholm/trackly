@@ -468,13 +468,14 @@ a {
 }
 
 .auth-page {
-  width: 100vw;
+  width: 100%;
   min-height: 100vh;
   background: #07110c;
+  overflow-x: hidden;
 }
 
 .auth-card {
-  width: 100vw;
+  width: 100%;
   min-height: 100vh;
   display: grid;
   grid-template-columns: 46% 54%;
@@ -1429,8 +1430,10 @@ body.light .worker-stats div {
   }
 
   .auth-card {
+    width: 100%;
     display: block;
     position: relative;
+    overflow-x: hidden;
   }
 
   .visual-panel {
@@ -1452,12 +1455,13 @@ body.light .worker-stats div {
 
   .loop-area {
     top: 50%;
-    width: 390px;
-    height: 390px;
+    width: min(390px, 100vw);
+    height: min(390px, 100vw);
     opacity: 0.34;
   }
 
   .form-panel {
+    min-width: 0;
     position: relative;
     z-index: 2;
     padding: 18px;
