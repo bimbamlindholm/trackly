@@ -1,6 +1,7 @@
 import { useContext } from "react"
 
 import DashboardLayout from "../layouts/DashboardLayout"
+import InstallAppButton from "../components/InstallAppButton"
 
 import { AuthContext } from "../context/authContextValue"
 import { SalaryContext } from "../context/salaryContextValue"
@@ -70,9 +71,15 @@ function SettingsPage() {
           </div>
           <div className="record-item">Theme: {theme}</div>
 
+          <div className="record-item">
+            App Mode: Installable PWA for supported browsers
+          </div>
+
           <button className="custom-button" onClick={toggleTheme}>
             Switch to {theme === "dark" ? "Light" : "Dark"} Mode
           </button>
+
+          <InstallAppButton />
 
           <button className="logout-button" onClick={clearRecords}>
             Clear Attendance Records

@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom"
 
+import InstallAppButton from "../components/InstallAppButton"
+
 function LandingPage() {
   return (
     <main className="landing-page page-enter">
@@ -33,6 +35,7 @@ function LandingPage() {
             <Link className="hero-secondary" to="/login">
               Log In
             </Link>
+            <InstallAppButton className="hero-secondary install-link" />
           </div>
         </div>
 

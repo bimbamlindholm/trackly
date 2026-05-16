@@ -13,6 +13,9 @@ import {
   calculateBreakHours,
   calculateWorkedHours,
   calculateEstimatedSalary,
+  formatDuration,
+  getAttendanceIssues,
+  getDailyAttendanceSummaries,
 } from "../utils/payrollUtils"
 
 const pesoFormatter = new Intl.NumberFormat("en-PH", {
@@ -28,7 +31,7 @@ function getTimestampFromDateAndTime(date, time) {
 
 function AttendancePage() {
   const { records, setRecords } = useContext(AttendanceContext)
-  const { hourlyRate } = useContext(SalaryContext)
+  const { hourlyRate, hoursPerDay } = useContext(SalaryContext)
 
   const [editingId, setEditingId] = useState(null)
   const [editType, setEditType] = useState("")
@@ -50,6 +53,14 @@ function AttendancePage() {
   const breakHours = calculateBreakHours(filteredRecords)
   const netWorkedHours = calculateWorkedHours(filteredRecords)
   const estimatedSalary = calculateEstimatedSalary(filteredRecords, hourlyRate)
+  const dailySummaries = getDailyAttendanceSummaries(
+    filteredRecords,
+    hourlyRate,
+    hoursPerDay
+  )
+  const recordsNeedingReview = dailySummaries.filter(
+    (summary) => summary.status === "Needs Review"
+  ).length
 
   const sortedRecords = [...filteredRecords].sort(
     (a, b) => Number(b.timestamp) - Number(a.timestamp)
@@ -140,18 +151,39 @@ function AttendancePage() {
       return
     }
 
-    const headers = ["Type", "Time", "Date", "Email"]
+    const headers = [
+      "Date",
+      "First Time In",
+      "Last Time Out",
+      "Gross Hours",
+      "Break Hours",
+      "Net Hours",
+      "Overtime Hours",
+      "Undertime Hours",
+      "Estimated Earnings",
+      "Status",
+      "Issues",
+    ]
 
-    const rows = filteredRecords.map((record) => [
-      record.type,
-      record.time,
-      record.date,
-      record.user_email,
+    const rows = dailySummaries.map((summary) => [
+      summary.date,
+      summary.firstTimeIn,
+      summary.lastTimeOut,
+      summary.grossHours.toFixed(2),
+      summary.breakHours.toFixed(2),
+      summary.netHours.toFixed(2),
+      summary.overtimeHours.toFixed(2),
+      summary.undertimeHours.toFixed(2),
+      summary.earnings.toFixed(2),
+      summary.status,
+      summary.issues.join(" | "),
     ])
 
     const csvContent = [
       headers.join(","),
-      ...rows.map((row) => row.join(",")),
+      ...rows.map((row) =>
+        row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(",")
+      ),
     ].join("\n")
 
     const blob = new Blob([csvContent], {
@@ -190,12 +222,15 @@ function AttendancePage() {
 
     autoTable(doc, {
       startY: 75,
-      head: [["Type", "Time", "Date", "Email"]],
-      body: filteredRecords.map((record) => [
-        record.type,
-        record.time,
-        record.date,
-        record.user_email,
+      head: [["Date", "Time In", "Time Out", "Net", "OT", "Pay", "Status"]],
+      body: dailySummaries.map((summary) => [
+        summary.date,
+        summary.firstTimeIn,
+        summary.lastTimeOut,
+        formatDuration(summary.netHours),
+        formatDuration(summary.overtimeHours),
+        `PHP ${summary.earnings.toFixed(2)}`,
+        summary.status,
       ]),
     })
 
@@ -228,12 +263,17 @@ function AttendancePage() {
 
           <div className="dashboard-card">
             <h2>Net Worked Hours</h2>
-            <p>{netWorkedHours.toFixed(2)}</p>
+            <p>{formatDuration(netWorkedHours)}</p>
           </div>
 
           <div className="dashboard-card">
             <h2>Estimated Earnings</h2>
             <p>{pesoFormatter.format(estimatedSalary)}</p>
+          </div>
+
+          <div className="dashboard-card">
+            <h2>Needs Review</h2>
+            <p>{recordsNeedingReview}</p>
           </div>
         </div>
 
@@ -266,6 +306,45 @@ function AttendancePage() {
             Export PDF
           </button>
 
+          <h2>Daily DTR Summary</h2>
+
+          {dailySummaries.length === 0 ? (
+            <div className="record-item">
+              <h3>No daily summaries yet.</h3>
+              <p>Daily summaries appear when attendance records exist.</p>
+            </div>
+          ) : (
+            <div className="summary-table">
+              <div className="summary-row summary-head">
+                <span>Date</span>
+                <span>Time In</span>
+                <span>Time Out</span>
+                <span>Net</span>
+                <span>Pay</span>
+                <span>Status</span>
+              </div>
+
+              {dailySummaries.map((summary) => (
+                <div className="summary-row" key={summary.date}>
+                  <span>{summary.date}</span>
+                  <span>{summary.firstTimeIn}</span>
+                  <span>{summary.lastTimeOut}</span>
+                  <span>{formatDuration(summary.netHours)}</span>
+                  <span>{pesoFormatter.format(summary.earnings)}</span>
+                  <span
+                    className={
+                      summary.status === "Complete"
+                        ? "status-complete"
+                        : "status-review"
+                    }
+                  >
+                    {summary.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
           <h2>Attendance Records</h2>
 
           {sortedRecords.length === 0 ? (
@@ -284,6 +363,13 @@ function AttendancePage() {
               >
                 {editingId === record.id ? (
                   <>
+                    {getAttendanceIssues([record]).length > 0 && (
+                      <p className="helper-text">
+                        Editing this record will update the timestamp used by
+                        payroll.
+                      </p>
+                    )}
+
                     <select
                       className="custom-input"
                       value={editType}

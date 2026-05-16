@@ -12,6 +12,8 @@ import {
   calculateWorkedHours,
   calculateOvertimeHours,
   calculateEstimatedSalary,
+  formatDuration,
+  getDailyAttendanceSummaries,
 } from "../utils/payrollUtils"
 
 const pesoFormatter = new Intl.NumberFormat("en-PH", {
@@ -47,6 +49,15 @@ function DashboardPage() {
   const netWorkedHours = calculateWorkedHours(records)
   const overtimeHours = calculateOvertimeHours(records, hoursPerDay)
   const estimatedSalary = calculateEstimatedSalary(records, hourlyRate)
+  const dailySummaries = getDailyAttendanceSummaries(
+    records,
+    hourlyRate,
+    hoursPerDay
+  )
+  const completeDays = dailySummaries.filter(
+    (summary) => summary.status === "Complete"
+  ).length
+  const reviewDays = dailySummaries.length - completeDays
 
   return (
     <DashboardLayout>
@@ -83,28 +94,72 @@ function DashboardPage() {
 
           <div className="dashboard-card">
             <h2>Gross Hours</h2>
-            <p>{grossHours.toFixed(2)}</p>
+            <p>{formatDuration(grossHours)}</p>
           </div>
 
           <div className="dashboard-card">
             <h2>Break Hours</h2>
-            <p>{breakHours.toFixed(2)}</p>
+            <p>{formatDuration(breakHours)}</p>
           </div>
 
           <div className="dashboard-card">
             <h2>Net Worked Hours</h2>
-            <p>{netWorkedHours.toFixed(2)}</p>
+            <p>{formatDuration(netWorkedHours)}</p>
           </div>
 
           <div className="dashboard-card">
             <h2>Overtime Hours</h2>
-            <p>{overtimeHours.toFixed(2)}</p>
+            <p>{formatDuration(overtimeHours)}</p>
           </div>
 
           <div className="dashboard-card">
             <h2>Estimated Earnings</h2>
             <p>{pesoFormatter.format(estimatedSalary)}</p>
           </div>
+
+          <div className="dashboard-card">
+            <h2>Complete DTR Days</h2>
+            <p>{completeDays}</p>
+          </div>
+
+          <div className="dashboard-card">
+            <h2>Needs Review</h2>
+            <p>{reviewDays}</p>
+          </div>
+        </div>
+
+        <div className="tracker-card">
+          <h2>Recent Daily DTR</h2>
+
+          {dailySummaries.length === 0 ? (
+            <p>No attendance summaries yet.</p>
+          ) : (
+            <div className="summary-table">
+              <div className="summary-row summary-head">
+                <span>Date</span>
+                <span>Net</span>
+                <span>Overtime</span>
+                <span>Status</span>
+              </div>
+
+              {dailySummaries.slice(0, 5).map((summary) => (
+                <div className="summary-row" key={summary.date}>
+                  <span>{summary.date}</span>
+                  <span>{formatDuration(summary.netHours)}</span>
+                  <span>{formatDuration(summary.overtimeHours)}</span>
+                  <span
+                    className={
+                      summary.status === "Complete"
+                        ? "status-complete"
+                        : "status-review"
+                    }
+                  >
+                    {summary.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </DashboardLayout>

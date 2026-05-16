@@ -166,9 +166,11 @@ a {
   gap: 14px;
 }
 
-.hero-actions a {
+.hero-actions a,
+.hero-actions button {
   min-height: 58px;
   padding: 0 24px;
+  border: 1px solid transparent;
   border-radius: 18px;
   display: inline-flex;
   align-items: center;
@@ -194,6 +196,10 @@ a {
   border: 1px solid rgba(125, 255, 156, 0.18);
   background: rgba(255, 255, 255, 0.07);
   color: white;
+}
+
+.install-link {
+  border-color: rgba(125, 255, 156, 0.18);
 }
 
 .hero-preview {
@@ -940,6 +946,95 @@ select.custom-input {
   color: white;
 }
 
+.status-panel {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.status-panel h2 {
+  margin: 8px 0 8px;
+  font-size: clamp(32px, 5vw, 54px);
+  line-height: 1;
+}
+
+.status-pill,
+.status-complete,
+.status-review {
+  border-radius: 999px;
+  padding: 8px 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.status-pill,
+.status-complete {
+  background: rgba(121, 255, 156, 0.14);
+  color: #79ff9c;
+}
+
+.status-review {
+  background: rgba(255, 193, 112, 0.16);
+  color: #ffc170;
+}
+
+.review-box {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid rgba(255, 193, 112, 0.22);
+  border-radius: 18px;
+  background: rgba(255, 193, 112, 0.08);
+}
+
+.review-box strong {
+  color: #ffc170;
+}
+
+.review-box p,
+.helper-text {
+  margin: 8px 0 0;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 14px;
+}
+
+.record-item span {
+  display: block;
+  margin-top: 4px;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.summary-table {
+  margin-top: 18px;
+  display: grid;
+  gap: 10px;
+}
+
+.summary-row {
+  min-height: 54px;
+  padding: 12px 14px;
+  border: 1px solid rgba(125, 255, 156, 0.1);
+  border-radius: 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.summary-head {
+  min-height: auto;
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+}
+
 .delete-record-button,
 .logout-button {
   background: rgba(255, 92, 92, 0.92);
@@ -1133,8 +1228,18 @@ body.light .custom-input {
   }
 
   .hero-actions a,
+  .hero-actions button,
   .tracker-buttons button {
     width: 100%;
+  }
+
+  .status-panel,
+  .summary-row {
+    grid-template-columns: 1fr;
+  }
+
+  .status-panel {
+    display: grid;
   }
 
   .form-options {

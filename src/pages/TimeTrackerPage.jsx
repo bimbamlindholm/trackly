@@ -4,6 +4,12 @@ import DashboardLayout from "../layouts/DashboardLayout"
 import { AttendanceContext } from "../context/attendanceContextValue"
 import { AuthContext } from "../context/authContextValue"
 import { supabase } from "../services/supabaseClient"
+import {
+  formatDuration,
+  getAllowedAttendanceActions,
+  getAttendanceIssues,
+  getAttendanceStatus,
+} from "../utils/payrollUtils"
 
 function TimeTrackerPage() {
   const { records, setRecords } = useContext(AttendanceContext)
@@ -14,17 +20,28 @@ function TimeTrackerPage() {
   )
 
   const lastRecord = sortedRecords[sortedRecords.length - 1]
-
-  const currentStatus = (() => {
-    if (!lastRecord) return "Not Working"
-    if (lastRecord.type === "Time In") return "Currently Working"
-    if (lastRecord.type === "Break Out") return "On Break"
-    if (lastRecord.type === "Break In") return "Currently Working"
-    if (lastRecord.type === "Time Out") return "Not Working"
-    return "Not Working"
-  })()
+  const currentStatus = getAttendanceStatus(records)
+  const attendanceIssues = getAttendanceIssues(records)
+  const today = new Date().toISOString().split("T")[0]
+  const todayRecords = records.filter((record) => record.date === today)
+  const todayStartedAt = todayRecords.find(
+    (record) => record.type === "Time In"
+  )
 
   const addRecord = async (type) => {
+    const allowedActions = getAllowedAttendanceActions(records)
+    const allowedByType = {
+      "Time In": allowedActions.canTimeIn,
+      "Break Out": allowedActions.canBreakOut,
+      "Break In": allowedActions.canBreakIn,
+      "Time Out": allowedActions.canTimeOut,
+    }
+
+    if (!allowedByType[type]) {
+      alert(`Cannot add ${type} while status is ${currentStatus}.`)
+      return
+    }
+
     const now = new Date()
 
     const newRecord = {
@@ -50,10 +67,12 @@ function TimeTrackerPage() {
     setRecords([...records, data])
   }
 
-  const canTimeIn = currentStatus === "Not Working"
-  const canBreakOut = currentStatus === "Currently Working"
-  const canBreakIn = currentStatus === "On Break"
-  const canTimeOut = currentStatus === "Currently Working"
+  const {
+    canTimeIn,
+    canBreakOut,
+    canBreakIn,
+    canTimeOut,
+  } = getAllowedAttendanceActions(records)
 
   return (
     <DashboardLayout>
@@ -64,18 +83,41 @@ function TimeTrackerPage() {
         </div>
 
         <div className="tracker-card">
-          <h2>Current Status:</h2>
-          <p>{currentStatus}</p>
+          <div className="status-panel">
+            <div>
+              <span className="eyebrow">Live DTR Status</span>
+              <h2>{currentStatus}</h2>
+              <p>
+                {todayStartedAt
+                  ? `Today started at ${todayStartedAt.time}.`
+                  : "No time-in yet for today."}
+              </p>
+            </div>
+
+            <div className="status-pill">
+              {lastRecord ? lastRecord.type : "Ready"}
+            </div>
+          </div>
+
+          {attendanceIssues.length > 0 && (
+            <div className="review-box">
+              <strong>DTR needs review</strong>
+              {attendanceIssues.slice(0, 3).map((issue) => (
+                <p key={issue}>{issue}</p>
+              ))}
+            </div>
+          )}
 
           <div className="records-list">
-            <h3>Attendance Records</h3>
+            <h3>Today&apos;s Records</h3>
 
-            {sortedRecords.length === 0 ? (
+            {todayRecords.length === 0 ? (
               <p>No attendance records yet.</p>
             ) : (
-              sortedRecords.map((record) => (
+              todayRecords.map((record) => (
                 <div key={record.id || record.timestamp} className="record-item">
-                  {record.type} - {record.time}
+                  <strong>{record.type}</strong>
+                  <span>{record.time}</span>
                 </div>
               ))
             )}
@@ -98,6 +140,20 @@ function TimeTrackerPage() {
               Time Out
             </button>
           </div>
+
+          <p className="helper-text">
+            Current saved records: {records.length}. Estimated raw DTR span is{" "}
+            {formatDuration(
+              lastRecord && sortedRecords[0]
+                ? (Number(lastRecord.timestamp) -
+                    Number(sortedRecords[0].timestamp)) /
+                    1000 /
+                    60 /
+                    60
+                : 0
+            )}
+            .
+          </p>
         </div>
       </div>
     </DashboardLayout>

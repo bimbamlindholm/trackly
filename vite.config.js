@@ -12,19 +12,26 @@ export default defineConfig({
       manifest: {
         name: 'Trackly',
         short_name: 'Trackly',
-        description: 'Track attendance, salary, and work hours.',
-        theme_color: '#0f172a',
+        description: 'Installable DTR app for attendance, salary, and work hours.',
+        start_url: '/',
+        scope: '/',
+        display: 'standalone',
+        orientation: 'portrait-primary',
+        background_color: '#07110c',
+        theme_color: '#07110c',
+        categories: ['business', 'productivity', 'utilities'],
 
         icons: [
           {
-            src: '/trackly-logo.png',
+            src: '/ICON-01.png',
             sizes: '192x192',
             type: 'image/png',
           },
           {
-            src: '/trackly-logo.png',
+            src: '/ICON-01.png',
             sizes: '512x512',
             type: 'image/png',
+            purpose: 'any maskable',
           },
         ],
       },
