@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useNavigate, Link } from "react-router-dom"
+import { useNavigate, Link, useSearchParams } from "react-router-dom"
 
 import AuthShell from "../components/AuthShell"
 import EyeIcon from "../components/EyeIcon"
@@ -7,6 +7,9 @@ import { supabase } from "../services/supabaseClient"
 
 function RegisterPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const nextPath = searchParams.get("next") || "/login"
+  const accountType = searchParams.get("type")
 
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
@@ -38,15 +41,21 @@ function RegisterPage() {
 
     alert("Registration successful!")
 
-    navigate("/login")
+    navigate(nextPath)
   }
 
   return (
     <AuthShell>
       <form className="form-box register-box" onSubmit={handleRegister}>
-        <h1>Create account</h1>
+        <h1>
+          {accountType === "company-admin"
+            ? "Create admin account"
+            : "Create account"}
+        </h1>
         <p className="subtitle">
-          Register your details to start using the DTR system.
+          {accountType === "company-admin"
+            ? "Create your admin account before setting up your company."
+            : "Register your details to start using the DTR system."}
         </p>
 
         <label>
@@ -102,7 +111,9 @@ function RegisterPage() {
 
         <p className="switch">
           Already have an account?
-          <Link to="/login">Log In</Link>
+          <Link to={`/login?next=${encodeURIComponent(nextPath)}`}>
+            Log In
+          </Link>
         </p>
       </form>
     </AuthShell>

@@ -13,8 +13,8 @@ function LandingPage() {
 
         <div className="nav-actions">
           <Link to="/login">Log In</Link>
-          <Link className="nav-primary" to="/register">
-            Register
+          <Link className="nav-primary" to="/start">
+            Start Using Trackly
           </Link>
         </div>
       </nav>
@@ -29,8 +29,8 @@ function LandingPage() {
           </p>
 
           <div className="hero-actions">
-            <Link className="hero-primary" to="/register">
-              Create Account
+            <Link className="hero-primary" to="/start">
+              Start Using Trackly
             </Link>
             <Link className="hero-secondary" to="/login">
               Log In

@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { Link, useNavigate, useSearchParams } from "react-router-dom"
 
 import AuthShell from "../components/AuthShell"
 import EyeIcon from "../components/EyeIcon"
@@ -7,6 +7,8 @@ import { supabase } from "../services/supabaseClient"
 
 function LoginPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const nextPath = searchParams.get("next") || "/dashboard"
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -29,7 +31,7 @@ function LoginPage() {
       return
     }
 
-    navigate("/dashboard")
+    navigate(nextPath)
   }
 
   return (
@@ -96,7 +98,9 @@ function LoginPage() {
 
         <p className="switch">
           Don&apos;t have an account?
-          <Link to="/register">Register</Link>
+          <Link to={`/register?next=${encodeURIComponent(nextPath)}`}>
+            Register
+          </Link>
         </p>
       </form>
     </AuthShell>

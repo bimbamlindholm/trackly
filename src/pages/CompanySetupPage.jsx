@@ -18,8 +18,10 @@ function CompanySetupPage() {
   const { user, profile, activeOrganization, refreshProfile } =
     useContext(AuthContext)
   const [companyName, setCompanyName] = useState("")
+  const [folderName, setFolderName] = useState("General Staff")
   const [department, setDepartment] = useState("Management")
   const [position, setPosition] = useState("Administrator")
+  const [inviteLink, setInviteLink] = useState("")
   const [loading, setLoading] = useState(false)
 
   const createCompany = async (event) => {
@@ -70,9 +72,28 @@ function CompanySetupPage() {
       return
     }
 
+    const token = crypto.randomUUID()
+    const { error: inviteError } = await supabase
+      .from("organization_invites")
+      .insert([
+        {
+          organization_id: organization.id,
+          token,
+          department: folderName.trim() || "General Staff",
+          position: "Staff",
+          created_by: user.id,
+        },
+      ])
+
+    if (inviteError) {
+      alert(inviteError.message)
+      setLoading(false)
+      return
+    }
+
+    setInviteLink(`${window.location.origin}/company/join/${token}`)
     await refreshProfile()
     setLoading(false)
-    navigate("/admin")
   }
 
   return (
@@ -121,6 +142,13 @@ function CompanySetupPage() {
 
             <input
               className="custom-input"
+              placeholder="First staff folder, e.g. Aquaflask Sales Staff Harbor Point"
+              value={folderName}
+              onChange={(event) => setFolderName(event.target.value)}
+            />
+
+            <input
+              className="custom-input"
               placeholder="Your position"
               value={position}
               onChange={(event) => setPosition(event.target.value)}
@@ -129,6 +157,29 @@ function CompanySetupPage() {
             <button className="custom-button" type="submit" disabled={loading}>
               {loading ? "Creating..." : "Create Company"}
             </button>
+
+            {inviteLink && (
+              <div className="record-item">
+                <strong>First invite link generated</strong>
+                <p>{inviteLink}</p>
+
+                <button
+                  className="custom-button"
+                  type="button"
+                  onClick={() => navigator.clipboard.writeText(inviteLink)}
+                >
+                  Copy Invite Link
+                </button>
+
+                <button
+                  className="custom-button"
+                  type="button"
+                  onClick={() => navigate("/admin")}
+                >
+                  Open Company Admin
+                </button>
+              </div>
+            )}
           </form>
         )}
       </div>

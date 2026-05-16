@@ -1,6 +1,9 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom"
 
 import LandingPage from "./pages/LandingPage"
+import StartPage from "./pages/StartPage"
+import CompanyPurposePage from "./pages/CompanyPurposePage"
+import JoinCompanyPage from "./pages/JoinCompanyPage"
 import LoginPage from "./pages/LoginPage"
 import ForgotPasswordPage from "./pages/ForgotPasswordPage"
 import RegisterPage from "./pages/RegisterPage"
@@ -21,6 +24,10 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/start" element={<StartPage />} />
+        <Route path="/company" element={<CompanyPurposePage />} />
+        <Route path="/company/join" element={<JoinCompanyPage />} />
+        <Route path="/company/join/:token" element={<JoinCompanyPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/register" element={<RegisterPage />} />

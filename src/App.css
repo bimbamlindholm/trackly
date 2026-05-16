@@ -406,6 +406,67 @@ a {
   font-size: 18px;
 }
 
+.choice-section {
+  width: min(980px, calc(100% - 40px));
+  min-height: calc(100vh - 86px);
+  margin: 0 auto;
+  padding: 64px 0 90px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.choice-grid {
+  margin-top: 28px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.choice-card {
+  min-height: 280px;
+  padding: 30px;
+  border: 1px solid rgba(125, 255, 156, 0.13);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.055);
+  transition:
+    transform 0.24s ease,
+    border-color 0.24s ease,
+    background 0.24s ease;
+}
+
+.choice-card:hover {
+  transform: translateY(-5px);
+  border-color: rgba(125, 255, 156, 0.34);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.choice-card span {
+  color: #79ff9c;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.choice-card h3 {
+  margin: 70px 0 0;
+  color: white;
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1.05;
+}
+
+.choice-card p {
+  margin: 16px 0 0;
+  color: rgba(255, 255, 255, 0.66);
+  line-height: 1.65;
+}
+
+.join-card {
+  width: min(620px, 100%);
+  margin: 0 auto;
+}
+
 .auth-page {
   width: 100vw;
   min-height: 100vh;
@@ -1241,12 +1302,14 @@ body.light .worker-stats div {
 
   .quick-actions-grid,
   .features-section,
-  .mission-grid {
+  .mission-grid,
+  .choice-grid {
     grid-template-columns: 1fr;
   }
 
   .features-section,
-  .mission-vision-section {
+  .mission-vision-section,
+  .choice-section {
     width: min(100% - 28px, 680px);
   }
 

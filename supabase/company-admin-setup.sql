@@ -36,9 +36,21 @@ create table if not exists public.organization_members (
   unique (organization_id, email)
 );
 
+create table if not exists public.organization_invites (
+  id uuid primary key default gen_random_uuid(),
+  organization_id uuid not null references public.organizations(id) on delete cascade,
+  token text unique not null,
+  department text not null default 'General Staff',
+  position text default 'Staff',
+  active boolean not null default true,
+  created_by uuid references auth.users(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
 alter table public.user_profiles enable row level security;
 alter table public.organizations enable row level security;
 alter table public.organization_members enable row level security;
+alter table public.organization_invites enable row level security;
 alter table public.attendance_records enable row level security;
 alter table public.user_salary_settings enable row level security;
 
@@ -188,6 +200,7 @@ with check (public.trackly_is_org_admin(id));
 
 drop policy if exists "Members can read company members" on public.organization_members;
 drop policy if exists "Admins and creators can add company members" on public.organization_members;
+drop policy if exists "Workers can join with active invite" on public.organization_members;
 drop policy if exists "Admins can update company members" on public.organization_members;
 drop policy if exists "Admins can delete company members" on public.organization_members;
 
@@ -211,6 +224,21 @@ with check (
   )
 );
 
+create policy "Workers can join with active invite"
+on public.organization_members
+for insert
+to authenticated
+with check (
+  lower(email) = lower(auth.jwt()->>'email')
+  and role = 'worker'
+  and exists (
+    select 1
+    from public.organization_invites
+    where organization_invites.organization_id = organization_members.organization_id
+      and organization_invites.active = true
+  )
+);
+
 create policy "Admins can update company members"
 on public.organization_members
 for update
@@ -223,6 +251,36 @@ on public.organization_members
 for delete
 to authenticated
 using (public.trackly_is_org_admin(organization_id));
+
+drop policy if exists "Anyone authenticated can read active invites by token" on public.organization_invites;
+drop policy if exists "Admins can create company invites" on public.organization_invites;
+drop policy if exists "Admins can read company invites" on public.organization_invites;
+drop policy if exists "Admins can update company invites" on public.organization_invites;
+
+create policy "Anyone authenticated can read active invites by token"
+on public.organization_invites
+for select
+to authenticated
+using (active = true);
+
+create policy "Admins can create company invites"
+on public.organization_invites
+for insert
+to authenticated
+with check (public.trackly_is_org_admin(organization_id));
+
+create policy "Admins can read company invites"
+on public.organization_invites
+for select
+to authenticated
+using (public.trackly_is_org_admin(organization_id));
+
+create policy "Admins can update company invites"
+on public.organization_invites
+for update
+to authenticated
+using (public.trackly_is_org_admin(organization_id))
+with check (public.trackly_is_org_admin(organization_id));
 
 drop policy if exists "Users can read own attendance" on public.attendance_records;
 drop policy if exists "Users can insert own attendance" on public.attendance_records;

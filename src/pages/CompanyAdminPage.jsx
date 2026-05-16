@@ -24,6 +24,8 @@ function CompanyAdminPage() {
   const [inviteName, setInviteName] = useState("")
   const [inviteDepartment, setInviteDepartment] = useState("")
   const [invitePosition, setInvitePosition] = useState("")
+  const [folderName, setFolderName] = useState("")
+  const [folderInviteLink, setFolderInviteLink] = useState("")
   const [selectedMonth, setSelectedMonth] = useState("")
   const [selectedWorker, setSelectedWorker] = useState("all")
   const [loading, setLoading] = useState(true)
@@ -137,6 +139,32 @@ function CompanyAdminPage() {
     setInviteName("")
     setInviteDepartment("")
     setInvitePosition("")
+  }
+
+  const createFolderInvite = async (event) => {
+    event.preventDefault()
+
+    if (!activeOrganization?.id || !folderName.trim()) return
+
+    const token = crypto.randomUUID()
+    const { error: inviteError } = await supabase
+      .from("organization_invites")
+      .insert([
+        {
+          organization_id: activeOrganization.id,
+          token,
+          department: folderName.trim(),
+          position: "Staff",
+          created_by: activeMembership?.user_id || null,
+        },
+      ])
+
+    if (inviteError) {
+      alert(inviteError.message)
+      return
+    }
+
+    setFolderInviteLink(`${window.location.origin}/company/join/${token}`)
   }
 
   const filteredRecords = useMemo(() => {
@@ -383,6 +411,40 @@ function CompanyAdminPage() {
           <button className="custom-button" type="submit">
             Add Worker
           </button>
+        </form>
+
+        <form className="tracker-card login-form" onSubmit={createFolderInvite}>
+          <h2>Create Staff Folder Invite</h2>
+          <p>
+            Example: Aquaflask Sales Staff Harbor Point. Trackly generates a
+            link you can send to staff assigned to that folder.
+          </p>
+
+          <input
+            className="custom-input"
+            placeholder="Folder name"
+            value={folderName}
+            onChange={(event) => setFolderName(event.target.value)}
+            required
+          />
+
+          <button className="custom-button" type="submit">
+            Generate Invite Link
+          </button>
+
+          {folderInviteLink && (
+            <div className="record-item">
+              <strong>Invite link</strong>
+              <p>{folderInviteLink}</p>
+              <button
+                className="custom-button"
+                type="button"
+                onClick={() => navigator.clipboard.writeText(folderInviteLink)}
+              >
+                Copy Link
+              </button>
+            </div>
+          )}
         </form>
 
         <div className="tracker-card">
