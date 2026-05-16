@@ -48,10 +48,22 @@ create table if not exists public.organization_invites (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.attendance_correction_requests (
+  id uuid primary key default gen_random_uuid(),
+  attendance_record_id uuid references public.attendance_records(id) on delete set null,
+  requested_by_email text not null,
+  message text not null,
+  status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
+  reviewed_by_email text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 alter table public.user_profiles enable row level security;
 alter table public.organizations enable row level security;
 alter table public.organization_members enable row level security;
 alter table public.organization_invites enable row level security;
+alter table public.attendance_correction_requests enable row level security;
 alter table public.attendance_records enable row level security;
 alter table public.user_salary_settings enable row level security;
 
@@ -61,10 +73,21 @@ alter table public.organization_members
 
 alter table public.attendance_records
   add column if not exists photo_data_url text,
-  add column if not exists photo_captured_at timestamptz;
+  add column if not exists photo_captured_at timestamptz,
+  add column if not exists latitude double precision,
+  add column if not exists longitude double precision,
+  add column if not exists location_accuracy double precision,
+  add column if not exists device_info text,
+  add column if not exists approval_status text not null default 'pending'
+    check (approval_status in ('pending', 'approved', 'rejected'));
 
 alter table public.user_salary_settings
-  add column if not exists paid_breaks boolean not null default false;
+  add column if not exists paid_breaks boolean not null default false,
+  add column if not exists work_start_time text not null default '09:00',
+  add column if not exists work_end_time text not null default '17:00',
+  add column if not exists grace_period_minutes integer not null default 10,
+  add column if not exists cutoff_mode text not null default 'monthly'
+    check (cutoff_mode in ('monthly', 'first-half', 'second-half'));
 
 create or replace function public.handle_new_user_profile()
 returns trigger
@@ -295,6 +318,36 @@ for update
 to authenticated
 using (public.trackly_is_org_admin(organization_id))
 with check (public.trackly_is_org_admin(organization_id));
+
+drop policy if exists "Users can create own correction requests" on public.attendance_correction_requests;
+drop policy if exists "Users can read own correction requests" on public.attendance_correction_requests;
+drop policy if exists "Admins can read company correction requests" on public.attendance_correction_requests;
+drop policy if exists "Admins can update company correction requests" on public.attendance_correction_requests;
+
+create policy "Users can create own correction requests"
+on public.attendance_correction_requests
+for insert
+to authenticated
+with check (lower(requested_by_email) = lower(auth.jwt()->>'email'));
+
+create policy "Users can read own correction requests"
+on public.attendance_correction_requests
+for select
+to authenticated
+using (lower(requested_by_email) = lower(auth.jwt()->>'email'));
+
+create policy "Admins can read company correction requests"
+on public.attendance_correction_requests
+for select
+to authenticated
+using (public.trackly_can_admin_email(requested_by_email));
+
+create policy "Admins can update company correction requests"
+on public.attendance_correction_requests
+for update
+to authenticated
+using (public.trackly_can_admin_email(requested_by_email))
+with check (public.trackly_can_admin_email(requested_by_email));
 
 drop policy if exists "Users can read own attendance" on public.attendance_records;
 drop policy if exists "Users can insert own attendance" on public.attendance_records;

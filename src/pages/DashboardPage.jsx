@@ -13,6 +13,7 @@ import {
   calculateEstimatedSalary,
   calculatePayableHours,
   formatDuration,
+  getCutoffDateRange,
   getDailyAttendanceSummaries,
 } from "../utils/payrollUtils"
 
@@ -30,6 +31,10 @@ function DashboardPage() {
     hourlyRate,
     hoursPerDay,
     paidBreaks,
+    workStartTime,
+    workEndTime,
+    gracePeriodMinutes,
+    cutoffMode,
   } = useContext(SalaryContext)
 
   const { user } = useContext(AuthContext)
@@ -58,8 +63,11 @@ function DashboardPage() {
     records,
     hourlyRate,
     hoursPerDay,
-    paidBreaks
+    paidBreaks,
+    { workStartTime, workEndTime, gracePeriodMinutes }
   )
+  const currentMonth = new Date().toISOString().slice(0, 7)
+  const cutoffRange = getCutoffDateRange(currentMonth, cutoffMode)
   const completeDays = dailySummaries.filter(
     (summary) => summary.status === "Complete"
   ).length
@@ -71,6 +79,11 @@ function DashboardPage() {
         <div className="dashboard-header">
           <h1>Dashboard</h1>
           <p>Welcome back, {displayName}.</p>
+          {cutoffRange && (
+            <p>
+              Current cutoff: {cutoffRange.start} to {cutoffRange.end}
+            </p>
+          )}
         </div>
 
         <div className="tracker-buttons">
@@ -146,6 +159,7 @@ function DashboardPage() {
                 <span>Net</span>
                 <span>Payable</span>
                 <span>Overtime</span>
+                <span>Late</span>
                 <span>Status</span>
               </div>
 
@@ -155,6 +169,7 @@ function DashboardPage() {
                   <span>{formatDuration(summary.netHours)}</span>
                   <span>{formatDuration(summary.payableHours)}</span>
                   <span>{formatDuration(summary.overtimeHours)}</span>
+                  <span>{summary.lateMinutes}m</span>
                   <span
                     className={
                       summary.status === "Complete"

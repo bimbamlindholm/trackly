@@ -20,6 +20,8 @@ function TimeTrackerPage() {
   const [cameraError, setCameraError] = useState("")
   const [timeMarkPhoto, setTimeMarkPhoto] = useState("")
   const [photoCapturedAt, setPhotoCapturedAt] = useState("")
+  const [locationEnabled, setLocationEnabled] = useState(false)
+  const [locationSnapshot, setLocationSnapshot] = useState(null)
 
   useEffect(() => {
     return () => {
@@ -134,6 +136,21 @@ function TimeTrackerPage() {
     }
 
     const now = new Date()
+    let currentLocation = locationSnapshot
+
+    if (locationEnabled && navigator.geolocation) {
+      try {
+        currentLocation = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 8000,
+          })
+        })
+        setLocationSnapshot(currentLocation)
+      } catch {
+        currentLocation = null
+      }
+    }
 
     const newRecord = {
       type,
@@ -143,6 +160,11 @@ function TimeTrackerPage() {
       user_email: user?.email,
       photo_data_url: timeMarkPhoto || null,
       photo_captured_at: photoCapturedAt || null,
+      latitude: currentLocation?.coords?.latitude || null,
+      longitude: currentLocation?.coords?.longitude || null,
+      location_accuracy: currentLocation?.coords?.accuracy || null,
+      device_info: navigator.userAgent,
+      approval_status: "pending",
     }
 
     const { data, error } = await supabase
@@ -215,6 +237,15 @@ function TimeTrackerPage() {
             {cameraError && <p className="form-error">{cameraError}</p>}
 
             <div className="camera-actions">
+              <label className="settings-toggle">
+                <input
+                  type="checkbox"
+                  checked={locationEnabled}
+                  onChange={(event) => setLocationEnabled(event.target.checked)}
+                />
+                <span>Attach GPS location</span>
+              </label>
+
               {!cameraActive ? (
                 <button className="custom-button" type="button" onClick={startCamera}>
                   Open Camera

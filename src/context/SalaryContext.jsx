@@ -15,6 +15,10 @@ function SalaryProvider({ children }) {
   const [hourlyRate, setHourlyRate] = useState(100)
   const [hoursPerDay, setHoursPerDay] = useState(8)
   const [paidBreaks, setPaidBreaks] = useState(false)
+  const [workStartTime, setWorkStartTime] = useState("09:00")
+  const [workEndTime, setWorkEndTime] = useState("17:00")
+  const [gracePeriodMinutes, setGracePeriodMinutes] = useState(10)
+  const [cutoffMode, setCutoffMode] = useState("monthly")
   const [salaryError, setSalaryError] = useState("")
 
   const createDefaultSettings = useCallback(async () => {
@@ -28,6 +32,10 @@ function SalaryProvider({ children }) {
           hourly_rate: 100,
           hours_per_day: 8,
           paid_breaks: false,
+          work_start_time: "09:00",
+          work_end_time: "17:00",
+          grace_period_minutes: 10,
+          cutoff_mode: "monthly",
         },
       ])
 
@@ -54,6 +62,10 @@ function SalaryProvider({ children }) {
         setHourlyRate(100)
         setHoursPerDay(8)
         setPaidBreaks(false)
+        setWorkStartTime("09:00")
+        setWorkEndTime("17:00")
+        setGracePeriodMinutes(10)
+        setCutoffMode("monthly")
       }
 
       if (error.code !== "PGRST116") {
@@ -66,23 +78,38 @@ function SalaryProvider({ children }) {
     setHourlyRate(Number(data.hourly_rate) || 0)
     setHoursPerDay(Number(data.hours_per_day) || 0)
     setPaidBreaks(Boolean(data.paid_breaks))
+    setWorkStartTime(data.work_start_time || "09:00")
+    setWorkEndTime(data.work_end_time || "17:00")
+    setGracePeriodMinutes(Number(data.grace_period_minutes) || 0)
+    setCutoffMode(data.cutoff_mode || "monthly")
     setSalaryError("")
   }, [createDefaultSettings, user])
 
   const updateSalarySettings = async (
     newHourlyRate,
     newHoursPerDay,
-    newPaidBreaks = paidBreaks
+    newPaidBreaks = paidBreaks,
+    newSchedule = {}
   ) => {
     if (!user?.email) return
 
     const normalizedHourlyRate = Number(newHourlyRate) || 0
     const normalizedHoursPerDay = Number(newHoursPerDay) || 0
     const normalizedPaidBreaks = Boolean(newPaidBreaks)
+    const normalizedStart = newSchedule.workStartTime ?? workStartTime
+    const normalizedEnd = newSchedule.workEndTime ?? workEndTime
+    const normalizedGrace = Number(
+      newSchedule.gracePeriodMinutes ?? gracePeriodMinutes
+    ) || 0
+    const normalizedCutoff = newSchedule.cutoffMode ?? cutoffMode
 
     setHourlyRate(normalizedHourlyRate)
     setHoursPerDay(normalizedHoursPerDay)
     setPaidBreaks(normalizedPaidBreaks)
+    setWorkStartTime(normalizedStart)
+    setWorkEndTime(normalizedEnd)
+    setGracePeriodMinutes(normalizedGrace)
+    setCutoffMode(normalizedCutoff)
 
     const { data, error } = await supabase
       .from("user_salary_settings")
@@ -90,6 +117,10 @@ function SalaryProvider({ children }) {
         hourly_rate: normalizedHourlyRate,
         hours_per_day: normalizedHoursPerDay,
         paid_breaks: normalizedPaidBreaks,
+        work_start_time: normalizedStart,
+        work_end_time: normalizedEnd,
+        grace_period_minutes: normalizedGrace,
+        cutoff_mode: normalizedCutoff,
       })
       .eq("user_email", user.email)
       .select("user_email")
@@ -108,6 +139,10 @@ function SalaryProvider({ children }) {
             hourly_rate: normalizedHourlyRate,
             hours_per_day: normalizedHoursPerDay,
             paid_breaks: normalizedPaidBreaks,
+            work_start_time: normalizedStart,
+            work_end_time: normalizedEnd,
+            grace_period_minutes: normalizedGrace,
+            cutoff_mode: normalizedCutoff,
           },
         ])
 
@@ -125,6 +160,10 @@ function SalaryProvider({ children }) {
       setHourlyRate(100)
       setHoursPerDay(8)
       setPaidBreaks(false)
+      setWorkStartTime("09:00")
+      setWorkEndTime("17:00")
+      setGracePeriodMinutes(10)
+      setCutoffMode("monthly")
       setSalaryError("")
       return
     }
@@ -138,6 +177,10 @@ function SalaryProvider({ children }) {
         hourlyRate,
         hoursPerDay,
         paidBreaks,
+        workStartTime,
+        workEndTime,
+        gracePeriodMinutes,
+        cutoffMode,
         salaryError,
         updateSalarySettings,
       }}

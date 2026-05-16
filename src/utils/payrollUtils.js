@@ -19,6 +19,24 @@ function millisecondsToHours(milliseconds) {
   return milliseconds / 1000 / 60 / 60
 }
 
+function parseTimeToMinutes(timeValue) {
+  if (!timeValue) return null
+
+  const [hourPart, minutePart] = String(timeValue).split(":")
+  const hours = Number(hourPart)
+  const minutes = Number(minutePart)
+
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return null
+
+  return hours * 60 + minutes
+}
+
+function getMinutesSinceMidnight(timestamp) {
+  const date = new Date(Number(timestamp))
+
+  return date.getHours() * 60 + date.getMinutes()
+}
+
 function getWorkedMilliseconds(records) {
   const sortedRecords = sortRecords(records)
   let workedMilliseconds = 0
@@ -140,6 +158,86 @@ export function calculateEstimatedSalary(records, hourlyRate, paidBreaks = false
   return workedHours * (Number(hourlyRate) || 0)
 }
 
+export function getScheduleMetrics(records, schedule = {}) {
+  const sortedRecords = sortRecords(records)
+  const firstTimeIn = sortedRecords.find((record) => record.type === "Time In")
+  const lastTimeOut = [...sortedRecords]
+    .reverse()
+    .find((record) => record.type === "Time Out")
+  const startMinutes = parseTimeToMinutes(schedule.workStartTime || "09:00")
+  const endMinutes = parseTimeToMinutes(schedule.workEndTime || "17:00")
+  const graceMinutes = Number(schedule.gracePeriodMinutes) || 0
+
+  if (startMinutes === null || endMinutes === null) {
+    return {
+      lateMinutes: 0,
+      undertimeMinutes: 0,
+      scheduledHours: Number(schedule.hoursPerDay) || 0,
+    }
+  }
+
+  const scheduledMinutes =
+    endMinutes >= startMinutes
+      ? endMinutes - startMinutes
+      : 24 * 60 - startMinutes + endMinutes
+  const timeInMinutes = firstTimeIn
+    ? getMinutesSinceMidnight(firstTimeIn.timestamp)
+    : null
+  const timeOutMinutes = lastTimeOut
+    ? getMinutesSinceMidnight(lastTimeOut.timestamp)
+    : null
+  const adjustedEndMinutes =
+    endMinutes >= startMinutes ? endMinutes : endMinutes + 24 * 60
+  const adjustedOutMinutes =
+    timeOutMinutes !== null && timeOutMinutes < startMinutes
+      ? timeOutMinutes + 24 * 60
+      : timeOutMinutes
+
+  return {
+    lateMinutes:
+      timeInMinutes !== null
+        ? Math.max(timeInMinutes - startMinutes - graceMinutes, 0)
+        : 0,
+    undertimeMinutes:
+      adjustedOutMinutes !== null
+        ? Math.max(adjustedEndMinutes - adjustedOutMinutes, 0)
+        : 0,
+    scheduledHours: scheduledMinutes / 60,
+  }
+}
+
+export function getCutoffDateRange(monthValue, cutoffMode = "monthly") {
+  if (!monthValue) return null
+
+  const [year, month] = monthValue.split("-").map(Number)
+
+  if (!year || !month) return null
+
+  if (cutoffMode === "first-half") {
+    return {
+      start: `${monthValue}-01`,
+      end: `${monthValue}-15`,
+    }
+  }
+
+  if (cutoffMode === "second-half") {
+    const lastDay = new Date(year, month, 0).getDate()
+
+    return {
+      start: `${monthValue}-16`,
+      end: `${monthValue}-${String(lastDay).padStart(2, "0")}`,
+    }
+  }
+
+  return {
+    start: `${monthValue}-01`,
+    end: `${monthValue}-${String(new Date(year, month, 0).getDate()).padStart(
+      2,
+      "0"
+    )}`,
+  }
+}
+
 export function formatDuration(hours) {
   const safeHours = Math.max(Number(hours) || 0, 0)
   const totalMinutes = Math.round(safeHours * 60)
@@ -229,7 +327,8 @@ export function getDailyAttendanceSummaries(
   records,
   hourlyRate,
   requiredHoursPerDay,
-  paidBreaks = false
+  paidBreaks = false,
+  schedule = {}
 ) {
   const requiredHours = Number(requiredHoursPerDay) || 0
   const rate = Number(hourlyRate) || 0
@@ -256,6 +355,13 @@ export function getDailyAttendanceSummaries(
       const undertimeHours =
         requiredHours > 0 ? Math.max(requiredHours - payableHours, 0) : 0
       const issues = getAttendanceIssues(sortedDailyRecords)
+      const scheduleMetrics = getScheduleMetrics(sortedDailyRecords, {
+        ...schedule,
+        hoursPerDay: requiredHours,
+      })
+      const dayMarker = sortedDailyRecords.find((record) =>
+        ["Leave", "Holiday", "Rest Day"].includes(record.type)
+      )
 
       return {
         date,
@@ -267,9 +373,13 @@ export function getDailyAttendanceSummaries(
         payableHours,
         overtimeHours,
         undertimeHours,
+        lateMinutes: scheduleMetrics.lateMinutes,
+        scheduledUndertimeMinutes: scheduleMetrics.undertimeMinutes,
         earnings: payableHours * rate,
         recordCount: sortedDailyRecords.length,
-        status: issues.length === 0 ? "Complete" : "Needs Review",
+        dayType: dayMarker?.type || "Work Day",
+        approvalStatus: firstTimeIn?.approval_status || "pending",
+        status: dayMarker?.type || (issues.length === 0 ? "Complete" : "Needs Review"),
         issues,
       }
     })

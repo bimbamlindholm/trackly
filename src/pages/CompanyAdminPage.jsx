@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useState } from "react"
+import { useContext, useEffect, useState } from "react"
 
 import DashboardLayout from "../layouts/DashboardLayout"
 import { AuthContext } from "../context/authContextValue"
@@ -19,6 +19,7 @@ function CompanyAdminPage() {
   const [records, setRecords] = useState([])
   const [profiles, setProfiles] = useState([])
   const [salarySettings, setSalarySettings] = useState([])
+  const [correctionRequests, setCorrectionRequests] = useState([])
   const [members, setMembers] = useState([])
   const [inviteEmail, setInviteEmail] = useState("")
   const [inviteName, setInviteName] = useState("")
@@ -65,7 +66,7 @@ function CompanyAdminPage() {
         return
       }
 
-      const [attendanceResponse, profilesResponse, salaryResponse] =
+      const [attendanceResponse, profilesResponse, salaryResponse, requestResponse] =
         await Promise.all([
           supabase
             .from("attendance_records")
@@ -81,6 +82,11 @@ function CompanyAdminPage() {
             .from("user_salary_settings")
             .select("*")
             .in("user_email", memberEmails),
+          supabase
+            .from("attendance_correction_requests")
+            .select("*")
+            .in("requested_by_email", memberEmails)
+            .order("created_at", { ascending: false }),
         ])
 
       if (attendanceResponse.error) {
@@ -93,6 +99,7 @@ function CompanyAdminPage() {
       setRecords(attendanceResponse.data || [])
       setProfiles(profilesResponse.data || [])
       setSalarySettings(salaryResponse.data || [])
+      setCorrectionRequests(requestResponse.data || [])
       setLoading(false)
     }
 
@@ -228,96 +235,166 @@ function CompanyAdminPage() {
     )
   }
 
-  const filteredRecords = useMemo(() => {
-    return records.filter((record) => {
-      const matchesMonth = selectedMonth
-        ? record.date?.startsWith(selectedMonth)
-        : true
-      const matchesWorker =
-        selectedWorker === "all" ? true : record.user_email === selectedWorker
+  const updateRecordApproval = async (recordId, approvalStatus) => {
+    const { error: updateError } = await supabase
+      .from("attendance_records")
+      .update({ approval_status: approvalStatus })
+      .eq("id", recordId)
 
-      return matchesMonth && matchesWorker
-    })
-  }, [records, selectedMonth, selectedWorker])
+    if (updateError) {
+      alert(updateError.message)
+      return
+    }
 
-  const salaryByEmail = useMemo(() => {
-    return salarySettings.reduce((settings, item) => {
-      return {
-        ...settings,
-        [item.user_email]: {
-          hourlyRate: Number(item.hourly_rate) || 0,
-          paidBreaks: Boolean(item.paid_breaks),
-        },
-      }
-    }, {})
-  }, [salarySettings])
+    setRecords((currentRecords) =>
+      currentRecords.map((record) =>
+        record.id === recordId
+          ? { ...record, approval_status: approvalStatus }
+          : record
+      )
+    )
+  }
 
-  const workers = useMemo(() => {
-    const memberEmails = members.map((item) => item.email).filter(Boolean)
-    const profileEmails = profiles.map((item) => item.email).filter(Boolean)
-    const recordEmails = records
-      .map((record) => record.user_email)
-      .filter(Boolean)
-    const emails = [
-      ...new Set([...memberEmails, ...profileEmails, ...recordEmails]),
+  const updateCorrectionRequest = async (requestId, status) => {
+    const { error: updateError } = await supabase
+      .from("attendance_correction_requests")
+      .update({ status, reviewed_by_email: profile?.email || null })
+      .eq("id", requestId)
+
+    if (updateError) {
+      alert(updateError.message)
+      return
+    }
+
+    setCorrectionRequests((currentRequests) =>
+      currentRequests.map((request) =>
+        request.id === requestId ? { ...request, status } : request
+      )
+    )
+  }
+
+  const exportCompanyCSV = () => {
+    if (workers.length === 0) {
+      alert("No worker data to export.")
+      return
+    }
+
+    const rows = workers.flatMap((worker) =>
+      worker.dailySummaries.map((day) => [
+        worker.name,
+        worker.email,
+        worker.department,
+        day.date,
+        day.firstTimeIn,
+        day.lastTimeOut,
+        day.payableHours.toFixed(2),
+        day.overtimeHours.toFixed(2),
+        day.lateMinutes,
+        day.earnings.toFixed(2),
+        day.status,
+      ])
+    )
+    const headers = [
+      "Worker",
+      "Email",
+      "Team",
+      "Date",
+      "Time In",
+      "Time Out",
+      "Payable Hours",
+      "Overtime",
+      "Late Minutes",
+      "Pay",
+      "Status",
     ]
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) =>
+        row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(",")
+      ),
+    ].join("\n")
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.setAttribute("download", "trackly-company-payroll-report.csv")
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
 
-    return emails
-      .map((email) => {
-        const workerProfile = profiles.find((item) => item.email === email)
-        const workerMember = members.find((item) => item.email === email)
-        const workerRecords = filteredRecords.filter(
-          (record) => record.user_email === email
-        )
-        const salaryConfig = salaryByEmail[email] || {
-          hourlyRate: 0,
-          paidBreaks: false,
-        }
-        const dailySummaries = getDailyAttendanceSummaries(
-          workerRecords,
-          salaryConfig.hourlyRate,
-          8,
-          salaryConfig.paidBreaks
-        )
-        const totals = dailySummaries.reduce(
-          (summary, day) => ({
-            netHours: summary.netHours + day.netHours,
-            overtimeHours: summary.overtimeHours + day.overtimeHours,
-            earnings: summary.earnings + day.earnings,
-            reviewDays:
-              summary.reviewDays + (day.status === "Needs Review" ? 1 : 0),
-          }),
-          {
-            netHours: 0,
-            overtimeHours: 0,
-            earnings: 0,
-            reviewDays: 0,
-          }
-        )
+  const filteredRecords = records.filter((record) => {
+    const matchesMonth = selectedMonth
+      ? record.date?.startsWith(selectedMonth)
+      : true
+    const matchesWorker =
+      selectedWorker === "all" ? true : record.user_email === selectedWorker
 
-        return {
-          email,
-          name: workerMember?.full_name || workerProfile?.full_name || email,
-          role: workerMember?.role || workerProfile?.role || "worker",
-          membershipStatus: workerMember?.membership_status || "active",
-          department:
-            workerMember?.department ||
-            workerProfile?.department ||
-            "Unassigned",
-          position:
-            workerMember?.position ||
-            workerProfile?.position ||
-            "Worker",
-          hourlyRate: salaryConfig.hourlyRate,
-          paidBreaks: salaryConfig.paidBreaks,
-          recordCount: workerRecords.length,
-          dayCount: dailySummaries.length,
-          dailySummaries,
-          totals,
+    return matchesMonth && matchesWorker
+  })
+  const salaryByEmail = salarySettings.reduce((settings, item) => {
+    return {
+      ...settings,
+      [item.user_email]: {
+        hourlyRate: Number(item.hourly_rate) || 0,
+        paidBreaks: Boolean(item.paid_breaks),
+      },
+    }
+  }, {})
+  const memberEmails = members.map((item) => item.email).filter(Boolean)
+  const profileEmails = profiles.map((item) => item.email).filter(Boolean)
+  const recordEmails = records.map((record) => record.user_email).filter(Boolean)
+  const emails = [...new Set([...memberEmails, ...profileEmails, ...recordEmails])]
+  const workers = emails
+    .map((email) => {
+      const workerProfile = profiles.find((item) => item.email === email)
+      const workerMember = members.find((item) => item.email === email)
+      const workerRecords = filteredRecords.filter(
+        (record) => record.user_email === email
+      )
+      const salaryConfig = salaryByEmail[email] || {
+        hourlyRate: 0,
+        paidBreaks: false,
+      }
+      const dailySummaries = getDailyAttendanceSummaries(
+        workerRecords,
+        salaryConfig.hourlyRate,
+        8,
+        salaryConfig.paidBreaks
+      )
+      const totals = dailySummaries.reduce(
+        (summary, day) => ({
+          netHours: summary.netHours + day.netHours,
+          overtimeHours: summary.overtimeHours + day.overtimeHours,
+          earnings: summary.earnings + day.earnings,
+          reviewDays:
+            summary.reviewDays + (day.status === "Needs Review" ? 1 : 0),
+        }),
+        {
+          netHours: 0,
+          overtimeHours: 0,
+          earnings: 0,
+          reviewDays: 0,
         }
-      })
-      .sort((a, b) => a.name.localeCompare(b.name))
-  }, [filteredRecords, members, profiles, records, salaryByEmail])
+      )
+
+      return {
+        email,
+        name: workerMember?.full_name || workerProfile?.full_name || email,
+        role: workerMember?.role || workerProfile?.role || "worker",
+        membershipStatus: workerMember?.membership_status || "active",
+        department:
+          workerMember?.department || workerProfile?.department || "Unassigned",
+        position: workerMember?.position || workerProfile?.position || "Worker",
+        hourlyRate: salaryConfig.hourlyRate,
+        paidBreaks: salaryConfig.paidBreaks,
+        recordCount: workerRecords.length,
+        dayCount: dailySummaries.length,
+        dailySummaries,
+        totals,
+      }
+    })
+    .sort((a, b) => a.name.localeCompare(b.name))
 
   const companyTotals = workers.reduce(
     (summary, worker) => {
@@ -442,7 +519,44 @@ function CompanyAdminPage() {
             >
               Clear Filters
             </button>
+
+            <button className="custom-button" type="button" onClick={exportCompanyCSV}>
+              Export Payroll CSV
+            </button>
           </div>
+        </div>
+
+        <div className="tracker-card">
+          <h2>Correction Requests</h2>
+          {correctionRequests.length === 0 ? (
+            <p>No correction requests yet.</p>
+          ) : (
+            <div className="records-list">
+              {correctionRequests.map((request) => (
+                <div className="record-item" key={request.id}>
+                  <strong>{request.requested_by_email}</strong>
+                  <p>{request.message}</p>
+                  <span>Status: {request.status}</span>
+                  <div className="worker-actions">
+                    <button
+                      className="custom-button"
+                      type="button"
+                      onClick={() => updateCorrectionRequest(request.id, "approved")}
+                    >
+                      Approve Request
+                    </button>
+                    <button
+                      className="delete-record-button"
+                      type="button"
+                      onClick={() => updateCorrectionRequest(request.id, "rejected")}
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <form className="tracker-card login-form" onSubmit={addWorker}>
@@ -575,6 +689,40 @@ function CompanyAdminPage() {
                       <span>Pay</span>
                     </div>
                   </div>
+
+                  <div className="records-list">
+                    {worker.dailySummaries.slice(0, 3).map((day) => (
+                      <div className="record-item" key={day.date}>
+                        <strong>{day.date}</strong>
+                        <span>Late: {day.lateMinutes}m</span>
+                        <span>Payable: {formatDuration(day.payableHours)}</span>
+                        <span>Status: {day.status}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {records
+                    .filter((record) => record.user_email === worker.email)
+                    .slice(-2)
+                    .map((record) => (
+                      <div className="worker-actions" key={record.id}>
+                        <span>{record.date} {record.type}</span>
+                        <button
+                          className="custom-button"
+                          type="button"
+                          onClick={() => updateRecordApproval(record.id, "approved")}
+                        >
+                          Approve DTR
+                        </button>
+                        <button
+                          className="delete-record-button"
+                          type="button"
+                          onClick={() => updateRecordApproval(record.id, "rejected")}
+                        >
+                          Reject DTR
+                        </button>
+                      </div>
+                    ))}
 
                   {worker.totals.reviewDays > 0 && (
                     <div className="review-box compact-review">

@@ -5,6 +5,7 @@ import autoTable from "jspdf-autotable"
 
 import DashboardLayout from "../layouts/DashboardLayout"
 import { AttendanceContext } from "../context/attendanceContextValue"
+import { AuthContext } from "../context/authContextValue"
 import { SalaryContext } from "../context/salaryContextValue"
 import { supabase } from "../services/supabaseClient"
 
@@ -16,6 +17,7 @@ import {
   calculatePayableHours,
   formatDuration,
   getAttendanceIssues,
+  getCutoffDateRange,
   getDailyAttendanceSummaries,
 } from "../utils/payrollUtils"
 
@@ -32,7 +34,16 @@ function getTimestampFromDateAndTime(date, time) {
 
 function AttendancePage() {
   const { records, setRecords } = useContext(AttendanceContext)
-  const { hourlyRate, hoursPerDay, paidBreaks } = useContext(SalaryContext)
+  const { user } = useContext(AuthContext)
+  const {
+    hourlyRate,
+    hoursPerDay,
+    paidBreaks,
+    workStartTime,
+    workEndTime,
+    gracePeriodMinutes,
+    cutoffMode,
+  } = useContext(SalaryContext)
 
   const [editingId, setEditingId] = useState(null)
   const [editType, setEditType] = useState("")
@@ -40,6 +51,9 @@ function AttendancePage() {
   const [editDate, setEditDate] = useState("")
   const [selectedDate, setSelectedDate] = useState("")
   const [selectedMonth, setSelectedMonth] = useState("")
+  const [selectedCutoff, setSelectedCutoff] = useState("all")
+  const [requestMessage, setRequestMessage] = useState("")
+  const [requestRecordId, setRequestRecordId] = useState("")
 
   const filteredRecords = records.filter((record) => {
     const matchesDate = selectedDate ? record.date === selectedDate : true
@@ -47,7 +61,15 @@ function AttendancePage() {
       ? record.date?.startsWith(selectedMonth)
       : true
 
-    return matchesDate && matchesMonth
+    const cutoffRange =
+      selectedMonth && selectedCutoff !== "all"
+        ? getCutoffDateRange(selectedMonth, selectedCutoff)
+        : null
+    const matchesCutoff = cutoffRange
+      ? record.date >= cutoffRange.start && record.date <= cutoffRange.end
+      : true
+
+    return matchesDate && matchesMonth && matchesCutoff
   })
 
   const grossHours = calculateGrossWorkedHours(filteredRecords)
@@ -63,7 +85,8 @@ function AttendancePage() {
     filteredRecords,
     hourlyRate,
     hoursPerDay,
-    paidBreaks
+    paidBreaks,
+    { workStartTime, workEndTime, gracePeriodMinutes }
   )
   const recordsNeedingReview = dailySummaries.filter(
     (summary) => summary.status === "Needs Review"
@@ -150,6 +173,61 @@ function AttendancePage() {
   const clearFilters = () => {
     setSelectedDate("")
     setSelectedMonth("")
+    setSelectedCutoff("all")
+  }
+
+  const addDayMarker = async (type) => {
+    if (!selectedDate) {
+      alert("Pick a date first before marking leave, holiday, or rest day.")
+      return
+    }
+
+    const markerRecord = {
+      type,
+      time: "All day",
+      date: selectedDate,
+      timestamp: new Date(`${selectedDate} 00:00`).getTime(),
+      user_email: user?.email,
+      approval_status: "pending",
+    }
+
+    const { data, error } = await supabase
+      .from("attendance_records")
+      .insert([markerRecord])
+      .select()
+      .single()
+
+    if (error) {
+      alert(error.message)
+      return
+    }
+
+    setRecords([...records, data])
+  }
+
+  const submitCorrectionRequest = async () => {
+    if (!requestMessage.trim()) {
+      alert("Describe the correction you need.")
+      return
+    }
+
+    const { error } = await supabase.from("attendance_correction_requests").insert([
+      {
+        attendance_record_id: requestRecordId || null,
+        requested_by_email: user?.email,
+        message: requestMessage.trim(),
+        status: "pending",
+      },
+    ])
+
+    if (error) {
+      alert(error.message)
+      return
+    }
+
+    setRequestMessage("")
+    setRequestRecordId("")
+    alert("Correction request submitted.")
   }
 
   const exportCSV = () => {
@@ -309,6 +387,17 @@ function AttendancePage() {
             onChange={(e) => setSelectedDate(e.target.value)}
           />
 
+          <select
+            className="custom-input"
+            value={selectedCutoff}
+            onChange={(event) => setSelectedCutoff(event.target.value)}
+          >
+            <option value="all">All cutoff dates</option>
+            <option value="first-half">1-15 cutoff</option>
+            <option value="second-half">16-end cutoff</option>
+            <option value={cutoffMode}>My salary cutoff</option>
+          </select>
+
           <button className="custom-button" onClick={clearFilters}>
             Clear Filters
           </button>
@@ -320,6 +409,43 @@ function AttendancePage() {
           <button className="custom-button" onClick={exportPDF}>
             Export PDF
           </button>
+
+          <div className="admin-filter-grid">
+            <button className="custom-button" onClick={() => addDayMarker("Leave")}>
+              Mark Leave
+            </button>
+            <button className="custom-button" onClick={() => addDayMarker("Holiday")}>
+              Mark Holiday
+            </button>
+            <button className="custom-button" onClick={() => addDayMarker("Rest Day")}>
+              Mark Rest Day
+            </button>
+          </div>
+
+          <div className="record-item">
+            <strong>Correction Request</strong>
+            <select
+              className="custom-input"
+              value={requestRecordId}
+              onChange={(event) => setRequestRecordId(event.target.value)}
+            >
+              <option value="">General request</option>
+              {sortedRecords.map((record) => (
+                <option key={record.id} value={record.id}>
+                  {record.date} - {record.type} - {record.time}
+                </option>
+              ))}
+            </select>
+            <input
+              className="custom-input"
+              placeholder="Explain what needs correction"
+              value={requestMessage}
+              onChange={(event) => setRequestMessage(event.target.value)}
+            />
+            <button className="custom-button" onClick={submitCorrectionRequest}>
+              Submit Request
+            </button>
+          </div>
 
           <h2>Daily DTR Summary</h2>
 
@@ -337,6 +463,7 @@ function AttendancePage() {
                 <span>Net</span>
                 <span>Payable</span>
                 <span>Pay</span>
+                <span>Late</span>
                 <span>Status</span>
               </div>
 
@@ -348,6 +475,7 @@ function AttendancePage() {
                   <span>{formatDuration(summary.netHours)}</span>
                   <span>{formatDuration(summary.payableHours)}</span>
                   <span>{pesoFormatter.format(summary.earnings)}</span>
+                  <span>{summary.lateMinutes}m</span>
                   <span
                     className={
                       summary.status === "Complete"
@@ -396,6 +524,9 @@ function AttendancePage() {
                       <option>Break Out</option>
                       <option>Break In</option>
                       <option>Time Out</option>
+                      <option>Leave</option>
+                      <option>Holiday</option>
+                      <option>Rest Day</option>
                     </select>
 
                     <input
@@ -436,6 +567,15 @@ function AttendancePage() {
                     <br />
                     Email: {record.user_email}
                     <br />
+                    Approval: {record.approval_status || "pending"}
+                    <br />
+                    {record.latitude && record.longitude && (
+                      <>
+                        Location: {Number(record.latitude).toFixed(5)},{" "}
+                        {Number(record.longitude).toFixed(5)}
+                        <br />
+                      </>
+                    )}
                     {record.photo_data_url && (
                       <img
                         className="record-photo"
