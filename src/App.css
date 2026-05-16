@@ -1193,6 +1193,27 @@ select.custom-input {
   border-radius: 12px;
 }
 
+.admin-workspace-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 18px;
+}
+
+.admin-control-card {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-control-card > div:first-child h2,
+.admin-workspace-grid h2 {
+  margin-bottom: 8px;
+}
+
+.approval-item {
+  border: 1px solid rgba(125, 255, 156, 0.1);
+  background: rgba(121, 255, 156, 0.045);
+}
+
 .status-panel {
   display: flex;
   align-items: flex-start;

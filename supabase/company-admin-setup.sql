@@ -89,6 +89,19 @@ alter table public.user_salary_settings
   add column if not exists cutoff_mode text not null default 'monthly'
     check (cutoff_mode in ('monthly', 'first-half', 'second-half'));
 
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'time-mark-photos',
+  'time-mark-photos',
+  false,
+  5242880,
+  array['image/jpeg', 'image/png', 'image/webp']
+)
+on conflict (id) do update
+  set public = false,
+      file_size_limit = 5242880,
+      allowed_mime_types = array['image/jpeg', 'image/png', 'image/webp'];
+
 create or replace function public.handle_new_user_profile()
 returns trigger
 language plpgsql
@@ -348,6 +361,42 @@ for update
 to authenticated
 using (public.trackly_can_admin_email(requested_by_email))
 with check (public.trackly_can_admin_email(requested_by_email));
+
+drop policy if exists "Users can upload own time mark photos" on storage.objects;
+drop policy if exists "Users can read own time mark photos" on storage.objects;
+drop policy if exists "Admins can read company time mark photos" on storage.objects;
+
+create policy "Users can upload own time mark photos"
+on storage.objects
+for insert
+to authenticated
+with check (
+  bucket_id = 'time-mark-photos'
+  and (storage.foldername(name))[1] = auth.uid()::text
+);
+
+create policy "Users can read own time mark photos"
+on storage.objects
+for select
+to authenticated
+using (
+  bucket_id = 'time-mark-photos'
+  and (storage.foldername(name))[1] = auth.uid()::text
+);
+
+create policy "Admins can read company time mark photos"
+on storage.objects
+for select
+to authenticated
+using (
+  bucket_id = 'time-mark-photos'
+  and exists (
+    select 1
+    from public.attendance_records
+    where photo_data_url = 'storage:' || storage.objects.name
+      and public.trackly_can_admin_email(user_email)
+  )
+);
 
 drop policy if exists "Users can read own attendance" on public.attendance_records;
 drop policy if exists "Users can insert own attendance" on public.attendance_records;

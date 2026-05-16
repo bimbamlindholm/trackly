@@ -1,6 +1,7 @@
 import { useContext, useEffect, useRef, useState } from "react"
 
 import DashboardLayout from "../layouts/DashboardLayout"
+import TimeMarkImage from "../components/TimeMarkImage"
 import { AttendanceContext } from "../context/attendanceContextValue"
 import { AuthContext } from "../context/authContextValue"
 import { supabase } from "../services/supabaseClient"
@@ -121,6 +122,26 @@ function TimeTrackerPage() {
     setCameraError("")
   }
 
+  const uploadTimeMarkPhoto = async () => {
+    if (!timeMarkPhoto || !user?.id) return null
+
+    const response = await fetch(timeMarkPhoto)
+    const photoBlob = await response.blob()
+    const path = `${user.id}/${Date.now()}-${crypto.randomUUID()}.jpg`
+    const { error } = await supabase.storage
+      .from("time-mark-photos")
+      .upload(path, photoBlob, {
+        contentType: "image/jpeg",
+        upsert: false,
+      })
+
+    if (error) {
+      throw error
+    }
+
+    return `storage:${path}`
+  }
+
   const addRecord = async (type) => {
     const allowedActions = getAllowedAttendanceActions(records)
     const allowedByType = {
@@ -137,6 +158,15 @@ function TimeTrackerPage() {
 
     const now = new Date()
     let currentLocation = locationSnapshot
+
+    const storedPhotoPath = await uploadTimeMarkPhoto().catch((error) => {
+      alert(`Failed to upload time-mark photo: ${error.message}`)
+      return undefined
+    })
+
+    if (storedPhotoPath === undefined) {
+      return
+    }
 
     if (locationEnabled && navigator.geolocation) {
       try {
@@ -158,7 +188,7 @@ function TimeTrackerPage() {
       date: now.toISOString().split("T")[0],
       timestamp: now.getTime(),
       user_email: user?.email,
-      photo_data_url: timeMarkPhoto || null,
+      photo_data_url: storedPhotoPath,
       photo_captured_at: photoCapturedAt || null,
       latitude: currentLocation?.coords?.latitude || null,
       longitude: currentLocation?.coords?.longitude || null,
@@ -299,8 +329,7 @@ function TimeTrackerPage() {
                   <strong>{record.type}</strong>
                   <span>{record.time}</span>
                   {record.photo_data_url && (
-                    <img
-                      className="record-photo"
+                    <TimeMarkImage
                       src={record.photo_data_url}
                       alt={`${record.type} time mark`}
                     />

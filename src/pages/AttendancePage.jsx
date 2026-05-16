@@ -4,6 +4,7 @@ import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 
 import DashboardLayout from "../layouts/DashboardLayout"
+import TimeMarkImage from "../components/TimeMarkImage"
 import { AttendanceContext } from "../context/attendanceContextValue"
 import { AuthContext } from "../context/authContextValue"
 import { SalaryContext } from "../context/salaryContextValue"
@@ -577,8 +578,7 @@ function AttendancePage() {
                       </>
                     )}
                     {record.photo_data_url && (
-                      <img
-                        className="record-photo"
+                      <TimeMarkImage
                         src={record.photo_data_url}
                         alt={`${record.type} time mark`}
                       />

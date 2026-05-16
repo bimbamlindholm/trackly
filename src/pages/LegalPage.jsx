@@ -8,7 +8,7 @@ const pages = {
     sections: [
       {
         heading: "Information Trackly uses",
-        body: "Trackly stores account details, email address, attendance records, salary settings, company workspace membership, invite links, and optional camera time-mark photos attached to DTR records.",
+        body: "Trackly stores account details, email address, attendance records, salary settings, company workspace membership, invite links, and optional camera time-mark photo references attached to DTR records.",
       },
       {
         heading: "Google and Facebook login",
@@ -16,7 +16,7 @@ const pages = {
       },
       {
         heading: "Camera time marks",
-        body: "If a user captures a time-mark photo, the image includes the user's face, email address, and the captured date and time. Company admins can review these photos when the user is connected to a company workspace.",
+        body: "If a user captures a time-mark photo, the image includes the user's face, email address, and the captured date and time. Photos are stored in Supabase Storage and loaded through temporary signed links for the user or authorized company admin.",
       },
       {
         heading: "Salary estimates",

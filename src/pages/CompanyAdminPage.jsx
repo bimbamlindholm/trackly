@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState } from "react"
 
 import DashboardLayout from "../layouts/DashboardLayout"
+import TimeMarkImage from "../components/TimeMarkImage"
 import { AuthContext } from "../context/authContextValue"
 import { supabase } from "../services/supabaseClient"
 import {
@@ -485,8 +486,11 @@ function CompanyAdminPage() {
           </div>
         </div>
 
-        <div className="tracker-card">
-          <h2>Company Filters</h2>
+        <div className="tracker-card admin-control-card">
+          <div>
+            <h2>Reports and Filters</h2>
+            <p>Filter company DTR by month or worker, then export payroll-ready data.</p>
+          </div>
 
           <div className="admin-filter-grid">
             <input
@@ -526,8 +530,89 @@ function CompanyAdminPage() {
           </div>
         </div>
 
-        <div className="tracker-card">
-          <h2>Correction Requests</h2>
+        <div className="admin-workspace-grid">
+          <form className="tracker-card login-form" onSubmit={addWorker}>
+            <h2>Add Worker</h2>
+            <p>
+              Add a worker manually by email. Invite links are better for new
+              staff, but this is useful for quick admin setup.
+            </p>
+
+            <input
+              className="custom-input"
+              type="email"
+              placeholder="Worker email"
+              value={inviteEmail}
+              onChange={(event) => setInviteEmail(event.target.value)}
+              required
+            />
+
+            <input
+              className="custom-input"
+              placeholder="Worker name"
+              value={inviteName}
+              onChange={(event) => setInviteName(event.target.value)}
+            />
+
+            <input
+              className="custom-input"
+              placeholder="Team or department"
+              value={inviteDepartment}
+              onChange={(event) => setInviteDepartment(event.target.value)}
+            />
+
+            <input
+              className="custom-input"
+              placeholder="Position"
+              value={invitePosition}
+              onChange={(event) => setInvitePosition(event.target.value)}
+            />
+
+            <button className="custom-button" type="submit">
+              Add Worker
+            </button>
+          </form>
+
+          <form className="tracker-card login-form" onSubmit={createFolderInvite}>
+            <h2>Create Team Invite</h2>
+            <p>
+              Example: Aquaflask Sales Staff - Harbor Point. Trackly generates
+              a link you can send to staff assigned to that team.
+            </p>
+
+            <input
+              className="custom-input"
+              placeholder="Team or branch name"
+              value={folderName}
+              onChange={(event) => setFolderName(event.target.value)}
+              required
+            />
+
+            <button className="custom-button" type="submit">
+              Generate Invite Link
+            </button>
+
+            {folderInviteLink && (
+              <div className="record-item">
+                <strong>Invite link</strong>
+                <p>{folderInviteLink}</p>
+                <button
+                  className="custom-button"
+                  type="button"
+                  onClick={() => navigator.clipboard.writeText(folderInviteLink)}
+                >
+                  Copy Link
+                </button>
+              </div>
+            )}
+          </form>
+        </div>
+
+        <div className="tracker-card admin-control-card">
+          <div>
+            <h2>Correction Requests</h2>
+            <p>Review staff requests before making DTR corrections.</p>
+          </div>
           {correctionRequests.length === 0 ? (
             <p>No correction requests yet.</p>
           ) : (
@@ -558,82 +643,6 @@ function CompanyAdminPage() {
             </div>
           )}
         </div>
-
-        <form className="tracker-card login-form" onSubmit={addWorker}>
-          <h2>Add Worker to Company</h2>
-          <p>
-            Add the worker email they use to register/login to Trackly. Their
-            DTR will appear here once they create records.
-          </p>
-
-          <input
-            className="custom-input"
-            type="email"
-            placeholder="Worker email"
-            value={inviteEmail}
-            onChange={(event) => setInviteEmail(event.target.value)}
-            required
-          />
-
-          <input
-            className="custom-input"
-            placeholder="Worker name"
-            value={inviteName}
-            onChange={(event) => setInviteName(event.target.value)}
-          />
-
-          <input
-            className="custom-input"
-            placeholder="Department"
-            value={inviteDepartment}
-            onChange={(event) => setInviteDepartment(event.target.value)}
-          />
-
-          <input
-            className="custom-input"
-            placeholder="Position"
-            value={invitePosition}
-            onChange={(event) => setInvitePosition(event.target.value)}
-          />
-
-          <button className="custom-button" type="submit">
-            Add Worker
-          </button>
-        </form>
-
-        <form className="tracker-card login-form" onSubmit={createFolderInvite}>
-          <h2>Create Staff Folder Invite</h2>
-          <p>
-            Example: Aquaflask Sales Staff - Harbor Point. Trackly generates a
-            link you can send to staff assigned to that team.
-          </p>
-
-          <input
-            className="custom-input"
-            placeholder="Folder name"
-            value={folderName}
-            onChange={(event) => setFolderName(event.target.value)}
-            required
-          />
-
-          <button className="custom-button" type="submit">
-            Generate Invite Link
-          </button>
-
-          {folderInviteLink && (
-            <div className="record-item">
-              <strong>Invite link</strong>
-              <p>{folderInviteLink}</p>
-              <button
-                className="custom-button"
-                type="button"
-                onClick={() => navigator.clipboard.writeText(folderInviteLink)}
-              >
-                Copy Link
-              </button>
-            </div>
-          )}
-        </form>
 
         <div className="tracker-card">
           <h2>Worker Monitoring</h2>
@@ -705,22 +714,31 @@ function CompanyAdminPage() {
                     .filter((record) => record.user_email === worker.email)
                     .slice(-2)
                     .map((record) => (
-                      <div className="worker-actions" key={record.id}>
-                        <span>{record.date} {record.type}</span>
-                        <button
-                          className="custom-button"
-                          type="button"
-                          onClick={() => updateRecordApproval(record.id, "approved")}
-                        >
-                          Approve DTR
-                        </button>
-                        <button
-                          className="delete-record-button"
-                          type="button"
-                          onClick={() => updateRecordApproval(record.id, "rejected")}
-                        >
-                          Reject DTR
-                        </button>
+                      <div className="record-item approval-item" key={record.id}>
+                        <strong>{record.date} {record.type}</strong>
+                        <span>Approval: {record.approval_status || "pending"}</span>
+                        {record.photo_data_url && (
+                          <TimeMarkImage
+                            src={record.photo_data_url}
+                            alt={`${record.type} time mark`}
+                          />
+                        )}
+                        <div className="worker-actions">
+                          <button
+                            className="custom-button"
+                            type="button"
+                            onClick={() => updateRecordApproval(record.id, "approved")}
+                          >
+                            Approve
+                          </button>
+                          <button
+                            className="delete-record-button"
+                            type="button"
+                            onClick={() => updateRecordApproval(record.id, "rejected")}
+                          >
+                            Reject
+                          </button>
+                        </div>
                       </div>
                     ))}
 
