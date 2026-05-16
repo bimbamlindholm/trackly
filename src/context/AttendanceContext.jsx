@@ -1,14 +1,13 @@
-import { createContext, useContext, useEffect, useState } from "react"
+import { useCallback, useContext, useEffect, useState } from "react"
 import { supabase } from "../services/supabaseClient"
-import { AuthContext } from "./AuthContext"
-
-export const AttendanceContext = createContext()
+import { AuthContext } from "./authContextValue"
+import { AttendanceContext } from "./attendanceContextValue"
 
 function AttendanceProvider({ children }) {
   const { user, loading } = useContext(AuthContext)
   const [records, setRecords] = useState([])
 
-  const fetchRecords = async () => {
+  const fetchRecords = useCallback(async () => {
     if (!user?.email) return
 
     const { data, error } = await supabase
@@ -23,7 +22,7 @@ function AttendanceProvider({ children }) {
     }
 
     setRecords(data || [])
-  }
+  }, [user])
 
   useEffect(() => {
     if (!loading && user?.email) {
@@ -33,7 +32,7 @@ function AttendanceProvider({ children }) {
     if (!loading && !user) {
       setRecords([])
     }
-  }, [loading, user])
+  }, [fetchRecords, loading, user])
 
   return (
     <AttendanceContext.Provider

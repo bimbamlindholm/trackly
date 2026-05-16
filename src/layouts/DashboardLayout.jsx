@@ -1,8 +1,8 @@
 import { useContext } from "react"
 import { NavLink, useNavigate } from "react-router-dom"
 
-import { AuthContext } from "../context/AuthContext"
-import { AttendanceContext } from "../context/AttendanceContext"
+import { AuthContext } from "../context/authContextValue"
+import { AttendanceContext } from "../context/attendanceContextValue"
 import { supabase } from "../services/supabaseClient"
 
 function DashboardLayout({ children }) {

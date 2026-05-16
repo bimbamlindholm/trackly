@@ -1,18 +1,24 @@
 import { useContext } from "react"
 
 import DashboardLayout from "../layouts/DashboardLayout"
-import { SalaryContext } from "../context/SalaryContext"
+import { SalaryContext } from "../context/salaryContextValue"
+
+const pesoFormatter = new Intl.NumberFormat("en-PH", {
+  style: "currency",
+  currency: "PHP",
+})
 
 function SalaryPage() {
   const {
     hourlyRate,
-    setHourlyRate,
     hoursPerDay,
-    setHoursPerDay,
+    salaryError,
+    updateSalarySettings,
   } = useContext(SalaryContext)
 
   const estimatedDailySalary =
-  (Number(hourlyRate) || 0) * (Number(hoursPerDay) || 0)
+    (Number(hourlyRate) || 0) * (Number(hoursPerDay) || 0)
+
   return (
     <DashboardLayout>
       <div className="dashboard-page">
@@ -27,23 +33,35 @@ function SalaryPage() {
               type="number"
               placeholder="Hourly rate"
               value={hourlyRate}
-              onChange={(e) => setHourlyRate(e.target.value)}
+              onChange={(e) =>
+                updateSalarySettings(e.target.value, hoursPerDay)
+              }
               className="custom-input"
+              min="0"
+              step="0.01"
             />
 
             <input
               type="number"
               placeholder="Required hours per day"
               value={hoursPerDay}
-              onChange={(e) => setHoursPerDay(e.target.value)}
+              onChange={(e) =>
+                updateSalarySettings(hourlyRate, e.target.value)
+              }
               className="custom-input"
+              min="0"
+              step="0.25"
             />
           </div>
+
+          {salaryError && (
+            <p className="form-error">{salaryError}</p>
+          )}
 
           <div className="records-list">
             <h3>Estimated Daily Salary</h3>
             <div className="record-item">
-              ₱{estimatedDailySalary.toFixed(2)}
+              {pesoFormatter.format(estimatedDailySalary)}
             </div>
           </div>
         </div>

@@ -1,70 +1,127 @@
 function sortRecords(records) {
-  return [...records].sort((a, b) => a.timestamp - b.timestamp)
+  return [...records]
+    .filter((record) => Number(record.timestamp) > 0)
+    .sort((a, b) => Number(a.timestamp) - Number(b.timestamp))
+}
+
+function millisecondsToHours(milliseconds) {
+  return milliseconds / 1000 / 60 / 60
+}
+
+function getWorkedMilliseconds(records) {
+  const sortedRecords = sortRecords(records)
+  let workedMilliseconds = 0
+  let workStartedAt = null
+
+  sortedRecords.forEach((record) => {
+    const timestamp = Number(record.timestamp)
+
+    if (record.type === "Time In" && workStartedAt === null) {
+      workStartedAt = timestamp
+      return
+    }
+
+    if (record.type === "Break In" && workStartedAt === null) {
+      workStartedAt = timestamp
+      return
+    }
+
+    if (
+      (record.type === "Break Out" || record.type === "Time Out") &&
+      workStartedAt !== null &&
+      timestamp > workStartedAt
+    ) {
+      workedMilliseconds += timestamp - workStartedAt
+      workStartedAt = null
+    }
+  })
+
+  return workedMilliseconds
 }
 
 export function calculateGrossWorkedHours(records) {
   const sortedRecords = sortRecords(records)
+  let grossMilliseconds = 0
+  let shiftStartedAt = null
 
-  const timeIn = sortedRecords.find(
-    (record) => record.type === "Time In"
-  )
+  sortedRecords.forEach((record) => {
+    const timestamp = Number(record.timestamp)
 
-  const timeOut = [...sortedRecords]
-    .reverse()
-    .find((record) => record.type === "Time Out")
+    if (record.type === "Time In" && shiftStartedAt === null) {
+      shiftStartedAt = timestamp
+      return
+    }
 
-  if (!timeIn || !timeOut) return 0
+    if (
+      record.type === "Time Out" &&
+      shiftStartedAt !== null &&
+      timestamp > shiftStartedAt
+    ) {
+      grossMilliseconds += timestamp - shiftStartedAt
+      shiftStartedAt = null
+    }
+  })
 
-  const milliseconds = timeOut.timestamp - timeIn.timestamp
-
-  if (milliseconds <= 0) return 0
-
-  return milliseconds / 1000 / 60 / 60
+  return millisecondsToHours(grossMilliseconds)
 }
 
 export function calculateBreakHours(records) {
-  let totalBreakHours = 0
+  let breakMilliseconds = 0
   const sortedRecords = sortRecords(records)
+  let breakStartedAt = null
 
-  for (let i = 0; i < sortedRecords.length; i++) {
-    const current = sortedRecords[i]
-    const next = sortedRecords[i + 1]
+  sortedRecords.forEach((record) => {
+    const timestamp = Number(record.timestamp)
 
     if (
-      current?.type === "Break Out" &&
-      next?.type === "Break In"
+      record.type === "Break Out" &&
+      breakStartedAt === null
     ) {
-      const milliseconds = next.timestamp - current.timestamp
-
-      if (milliseconds > 0) {
-        totalBreakHours += milliseconds / 1000 / 60 / 60
-      }
+      breakStartedAt = timestamp
+      return
     }
-  }
 
-  return totalBreakHours
+    if (
+      (record.type === "Break In" || record.type === "Time Out") &&
+      breakStartedAt !== null &&
+      timestamp > breakStartedAt
+    ) {
+      breakMilliseconds += timestamp - breakStartedAt
+      breakStartedAt = null
+    }
+  })
+
+  return millisecondsToHours(breakMilliseconds)
 }
 
 export function calculateWorkedHours(records) {
-  const grossHours = calculateGrossWorkedHours(records)
-  const breakHours = calculateBreakHours(records)
-
-  const netHours = grossHours - breakHours
-
-  return netHours > 0 ? netHours : 0
+  return millisecondsToHours(getWorkedMilliseconds(records))
 }
 
 export function calculateOvertimeHours(records, requiredHoursPerDay) {
-  const netWorkedHours = calculateWorkedHours(records)
   const requiredHours = Number(requiredHoursPerDay) || 0
 
-  const overtimeHours = netWorkedHours - requiredHours
+  if (requiredHours <= 0) return 0
 
-  return overtimeHours > 0 ? overtimeHours : 0
+  const recordsByDate = sortRecords(records).reduce((groups, record) => {
+    if (!record.date) return groups
+
+    return {
+      ...groups,
+      [record.date]: [...(groups[record.date] || []), record],
+    }
+  }, {})
+
+  return Object.values(recordsByDate).reduce((total, dailyRecords) => {
+    const dailyWorkedHours = calculateWorkedHours(dailyRecords)
+    const dailyOvertimeHours = dailyWorkedHours - requiredHours
+
+    return total + (dailyOvertimeHours > 0 ? dailyOvertimeHours : 0)
+  }, 0)
 }
 
 export function calculateEstimatedSalary(records, hourlyRate) {
   const workedHours = calculateWorkedHours(records)
 
-  return workedHours * Number(hourlyRate)
+  return workedHours * (Number(hourlyRate) || 0)
 }

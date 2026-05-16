@@ -4,8 +4,8 @@ import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 
 import DashboardLayout from "../layouts/DashboardLayout"
-import { AttendanceContext } from "../context/AttendanceContext"
-import { SalaryContext } from "../context/SalaryContext"
+import { AttendanceContext } from "../context/attendanceContextValue"
+import { SalaryContext } from "../context/salaryContextValue"
 import { supabase } from "../services/supabaseClient"
 
 import {
@@ -14,6 +14,17 @@ import {
   calculateWorkedHours,
   calculateEstimatedSalary,
 } from "../utils/payrollUtils"
+
+const pesoFormatter = new Intl.NumberFormat("en-PH", {
+  style: "currency",
+  currency: "PHP",
+})
+
+function getTimestampFromDateAndTime(date, time) {
+  const timestamp = new Date(`${date} ${time}`).getTime()
+
+  return Number.isNaN(timestamp) ? null : timestamp
+}
 
 function AttendancePage() {
   const { records, setRecords } = useContext(AttendanceContext)
@@ -41,7 +52,7 @@ function AttendancePage() {
   const estimatedSalary = calculateEstimatedSalary(filteredRecords, hourlyRate)
 
   const sortedRecords = [...filteredRecords].sort(
-    (a, b) => b.timestamp - a.timestamp
+    (a, b) => Number(b.timestamp) - Number(a.timestamp)
   )
 
   const startEdit = (record) => {
@@ -59,12 +70,20 @@ function AttendancePage() {
   }
 
   const saveEdit = async (recordId) => {
+    const timestamp = getTimestampFromDateAndTime(editDate, editTime)
+
+    if (!timestamp) {
+      alert("Please enter a valid date and time.")
+      return
+    }
+
     const { error } = await supabase
       .from("attendance_records")
       .update({
         type: editType,
         time: editTime,
         date: editDate,
+        timestamp,
       })
       .eq("id", recordId)
 
@@ -81,6 +100,7 @@ function AttendancePage() {
               type: editType,
               time: editTime,
               date: editDate,
+              timestamp,
             }
           : record
       )
@@ -213,7 +233,7 @@ function AttendancePage() {
 
           <div className="dashboard-card">
             <h2>Estimated Earnings</h2>
-            <p>₱{estimatedSalary.toFixed(2)}</p>
+            <p>{pesoFormatter.format(estimatedSalary)}</p>
           </div>
         </div>
 
@@ -249,14 +269,14 @@ function AttendancePage() {
           <h2>Attendance Records</h2>
 
           {sortedRecords.length === 0 ? (
-  <div className="record-item">
-    <h3>No attendance records found.</h3>
+            <div className="record-item">
+              <h3>No attendance records found.</h3>
 
-    <p>
-      Try changing your filters or create a new attendance record.
-    </p>
-  </div>
-) : (
+              <p>
+                Try changing your filters or create a new attendance record.
+              </p>
+            </div>
+          ) : (
             sortedRecords.map((record) => (
               <div
                 key={record.id || record.timestamp}

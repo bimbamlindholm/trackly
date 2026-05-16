@@ -1,8 +1,8 @@
 import { useContext } from "react"
 
 import DashboardLayout from "../layouts/DashboardLayout"
-import { AttendanceContext } from "../context/AttendanceContext"
-import { AuthContext } from "../context/AuthContext"
+import { AttendanceContext } from "../context/attendanceContextValue"
+import { AuthContext } from "../context/authContextValue"
 import { supabase } from "../services/supabaseClient"
 
 function TimeTrackerPage() {
@@ -10,7 +10,7 @@ function TimeTrackerPage() {
   const { user } = useContext(AuthContext)
 
   const sortedRecords = [...records].sort(
-    (a, b) => a.timestamp - b.timestamp
+    (a, b) => Number(a.timestamp) - Number(b.timestamp)
   )
 
   const lastRecord = sortedRecords[sortedRecords.length - 1]

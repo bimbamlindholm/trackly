@@ -2,9 +2,9 @@ import { useContext } from "react"
 import { useNavigate } from "react-router-dom"
 
 import DashboardLayout from "../layouts/DashboardLayout"
-import { AttendanceContext } from "../context/AttendanceContext"
-import { SalaryContext } from "../context/SalaryContext"
-import { AuthContext } from "../context/AuthContext"
+import { AttendanceContext } from "../context/attendanceContextValue"
+import { SalaryContext } from "../context/salaryContextValue"
+import { AuthContext } from "../context/authContextValue"
 
 import {
   calculateGrossWorkedHours,
@@ -13,6 +13,11 @@ import {
   calculateOvertimeHours,
   calculateEstimatedSalary,
 } from "../utils/payrollUtils"
+
+const pesoFormatter = new Intl.NumberFormat("en-PH", {
+  style: "currency",
+  currency: "PHP",
+})
 
 function DashboardPage() {
   const navigate = useNavigate()
@@ -98,7 +103,7 @@ function DashboardPage() {
 
           <div className="dashboard-card">
             <h2>Estimated Earnings</h2>
-            <p>₱{estimatedSalary.toFixed(2)}</p>
+            <p>{pesoFormatter.format(estimatedSalary)}</p>
           </div>
         </div>
       </div>

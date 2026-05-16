@@ -2,11 +2,16 @@ import { useContext } from "react"
 
 import DashboardLayout from "../layouts/DashboardLayout"
 
-import { AuthContext } from "../context/AuthContext"
-import { SalaryContext } from "../context/SalaryContext"
-import { AttendanceContext } from "../context/AttendanceContext"
-import { ThemeContext } from "../context/ThemeContext"
+import { AuthContext } from "../context/authContextValue"
+import { SalaryContext } from "../context/salaryContextValue"
+import { AttendanceContext } from "../context/attendanceContextValue"
+import { ThemeContext } from "../context/themeContextValue"
 import { supabase } from "../services/supabaseClient"
+
+const pesoFormatter = new Intl.NumberFormat("en-PH", {
+  style: "currency",
+  currency: "PHP",
+})
 
 function SettingsPage() {
   const { user } = useContext(AuthContext)
@@ -60,7 +65,9 @@ function SettingsPage() {
           <div className="record-item">Name: {displayName}</div>
           <div className="record-item">Email: {user?.email}</div>
           <div className="record-item">User ID: {user?.id}</div>
-          <div className="record-item">Hourly Rate: ₱{hourlyRate}</div>
+          <div className="record-item">
+            Hourly Rate: {pesoFormatter.format(hourlyRate)}
+          </div>
           <div className="record-item">Theme: {theme}</div>
 
           <button className="custom-button" onClick={toggleTheme}>

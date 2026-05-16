@@ -83,6 +83,30 @@ button {
   background: #334155;
   color: white;
 }
+
+.custom-button {
+  padding: 14px 20px;
+  border: none;
+  border-radius: 12px;
+  background: #6366f1;
+  color: white;
+  font-weight: bold;
+  transition: 0.2s;
+}
+
+.custom-button:hover {
+  background: #4f46e5;
+}
+
+.form-error,
+.form-message {
+  margin: 16px 0 0;
+  color: #fca5a5;
+}
+
+.form-message {
+  color: #86efac;
+}
 .dashboard-page {
   min-height: 100vh;
   background: linear-gradient(to bottom right, #0f172a, #1e293b);

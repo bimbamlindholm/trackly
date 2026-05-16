@@ -1,50 +1,134 @@
-import { createContext, useContext, useEffect, useState } from "react"
-import { AuthContext } from "./AuthContext"
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react"
 
-export const SalaryContext = createContext()
+import { AuthContext } from "./authContextValue"
+import { SalaryContext } from "./salaryContextValue"
+import { supabase } from "../services/supabaseClient"
 
 function SalaryProvider({ children }) {
   const { user } = useContext(AuthContext)
 
-  const userKey = user?.id || "guest"
-
   const [hourlyRate, setHourlyRate] = useState(100)
   const [hoursPerDay, setHoursPerDay] = useState(8)
+  const [salaryError, setSalaryError] = useState("")
+
+  const createDefaultSettings = useCallback(async () => {
+    if (!user?.email) return
+
+    const { error } = await supabase
+      .from("user_salary_settings")
+      .insert([
+        {
+          user_email: user.email,
+          hourly_rate: 100,
+          hours_per_day: 8,
+        },
+      ])
+
+    if (error) {
+      setSalaryError(error.message)
+      return
+    }
+
+    setSalaryError("")
+  }, [user])
+
+  const fetchSalarySettings = useCallback(async () => {
+    if (!user?.email) return
+
+    const { data, error } = await supabase
+      .from("user_salary_settings")
+      .select("*")
+      .eq("user_email", user.email)
+      .single()
+
+    if (error) {
+      if (error.code === "PGRST116") {
+        await createDefaultSettings()
+        setHourlyRate(100)
+        setHoursPerDay(8)
+      }
+
+      if (error.code !== "PGRST116") {
+        setSalaryError(error.message)
+      }
+
+      return
+    }
+
+    setHourlyRate(Number(data.hourly_rate) || 0)
+    setHoursPerDay(Number(data.hours_per_day) || 0)
+    setSalaryError("")
+  }, [createDefaultSettings, user])
+
+  const updateSalarySettings = async (
+    newHourlyRate,
+    newHoursPerDay
+  ) => {
+    if (!user?.email) return
+
+    const normalizedHourlyRate = Number(newHourlyRate) || 0
+    const normalizedHoursPerDay = Number(newHoursPerDay) || 0
+
+    setHourlyRate(normalizedHourlyRate)
+    setHoursPerDay(normalizedHoursPerDay)
+
+    const { data, error } = await supabase
+      .from("user_salary_settings")
+      .update({
+        hourly_rate: normalizedHourlyRate,
+        hours_per_day: normalizedHoursPerDay,
+      })
+      .eq("user_email", user.email)
+      .select("user_email")
+
+    if (error) {
+      setSalaryError(error.message)
+      return
+    }
+
+    if (data.length === 0) {
+      const { error: insertError } = await supabase
+        .from("user_salary_settings")
+        .insert([
+          {
+            user_email: user.email,
+            hourly_rate: normalizedHourlyRate,
+            hours_per_day: normalizedHoursPerDay,
+          },
+        ])
+
+      if (insertError) {
+        setSalaryError(insertError.message)
+        return
+      }
+    }
+
+    setSalaryError("")
+  }
 
   useEffect(() => {
-    const savedRate = localStorage.getItem(
-      `trackly-hourly-rate-${userKey}`
-    )
+    if (!user?.email) {
+      setHourlyRate(100)
+      setHoursPerDay(8)
+      setSalaryError("")
+      return
+    }
 
-    const savedHours = localStorage.getItem(
-      `trackly-hours-per-day-${userKey}`
-    )
-
-    setHourlyRate(savedRate ? Number(savedRate) : 100)
-    setHoursPerDay(savedHours ? Number(savedHours) : 8)
-  }, [userKey])
-
-  useEffect(() => {
-    localStorage.setItem(
-      `trackly-hourly-rate-${userKey}`,
-      hourlyRate
-    )
-  }, [hourlyRate, userKey])
-
-  useEffect(() => {
-    localStorage.setItem(
-      `trackly-hours-per-day-${userKey}`,
-      hoursPerDay
-    )
-  }, [hoursPerDay, userKey])
+    fetchSalarySettings()
+  }, [fetchSalarySettings, user?.email])
 
   return (
     <SalaryContext.Provider
       value={{
         hourlyRate,
-        setHourlyRate,
         hoursPerDay,
-        setHoursPerDay,
+        salaryError,
+        updateSalarySettings,
       }}
     >
       {children}

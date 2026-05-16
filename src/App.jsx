@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom"
 
 import LoginPage from "./pages/LoginPage"
+import ForgotPasswordPage from "./pages/ForgotPasswordPage"
 import RegisterPage from "./pages/RegisterPage"
 import DashboardPage from "./pages/DashboardPage"
 import TimeTrackerPage from "./pages/TimeTrackerPage"
@@ -17,6 +18,7 @@ function App() {
       <Routes>
         <Route path="/" element={<LoginPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/supabase-test" element={<SupabaseTestPage />} />
 
