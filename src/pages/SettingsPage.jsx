@@ -15,7 +15,7 @@ const pesoFormatter = new Intl.NumberFormat("en-PH", {
 })
 
 function SettingsPage() {
-  const { user } = useContext(AuthContext)
+  const { user, profile, isAdmin } = useContext(AuthContext)
   const { hourlyRate } = useContext(SalaryContext)
   const { setRecords, fetchRecords } = useContext(AttendanceContext)
   const { theme, setTheme } = useContext(ThemeContext)
@@ -65,6 +65,14 @@ function SettingsPage() {
 
           <div className="record-item">Name: {displayName}</div>
           <div className="record-item">Email: {user?.email}</div>
+          <div className="record-item">
+            Role: {profile?.role || "worker"}
+          </div>
+          {isAdmin && (
+            <div className="record-item">
+              Admin Access: Company monitoring enabled
+            </div>
+          )}
           <div className="record-item">User ID: {user?.id}</div>
           <div className="record-item">
             Hourly Rate: {pesoFormatter.format(hourlyRate)}

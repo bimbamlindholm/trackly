@@ -10,8 +10,10 @@ import SalaryPage from "./pages/SalaryPage"
 import AttendancePage from "./pages/AttendancePage"
 import SettingsPage from "./pages/SettingsPage"
 import SupabaseTestPage from "./pages/SupabaseTestPage"
+import CompanyAdminPage from "./pages/CompanyAdminPage"
 
 import ProtectedRoute from "./components/ProtectedRoute"
+import AdminRoute from "./components/AdminRoute"
 
 function App() {
   return (
@@ -65,6 +67,15 @@ function App() {
             <ProtectedRoute>
               <SettingsPage />
             </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <CompanyAdminPage />
+            </AdminRoute>
           }
         />
       </Routes>
