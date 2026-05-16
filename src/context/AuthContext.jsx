@@ -6,6 +6,7 @@ function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
+  const [memberships, setMemberships] = useState([])
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [loading, setLoading] = useState(true)
 
@@ -19,6 +20,7 @@ function AuthProvider({ children }) {
   const loadProfile = useCallback(async (activeUser) => {
     if (!activeUser?.id) {
       setProfile(null)
+      setMemberships([])
       return
     }
 
@@ -41,10 +43,33 @@ function AuthProvider({ children }) {
         full_name: activeUser.user_metadata?.full_name || "",
         role: fallbackRole,
       })
+      setMemberships([])
       return
     }
 
     setProfile(data)
+
+    const { data: membershipData } = await supabase
+      .from("organization_members")
+      .select(`
+        id,
+        organization_id,
+        user_id,
+        email,
+        full_name,
+        role,
+        department,
+        position,
+        organizations (
+          id,
+          name,
+          slug
+        )
+      `)
+      .eq("email", activeUser.email)
+      .order("created_at", { ascending: true })
+
+    setMemberships(membershipData || [])
   }, [adminEmails])
 
   useEffect(() => {
@@ -76,16 +101,28 @@ function AuthProvider({ children }) {
     }
   }, [loadProfile])
 
+  const activeMembership =
+    memberships.find((membership) => membership.role === "admin") ||
+    memberships[0] ||
+    null
+  const activeOrganization = activeMembership?.organizations || null
+  const isCompanyAdmin =
+    activeMembership?.role === "admin" || profile?.role === "admin"
+
   return (
     <AuthContext.Provider
       value={{
         session,
         user,
         profile,
-        isAdmin: profile?.role === "admin",
+        memberships,
+        activeMembership,
+        activeOrganization,
+        isAdmin: isCompanyAdmin,
         isLoggedIn,
         loading,
         setProfile,
+        refreshProfile: () => loadProfile(user),
         setIsLoggedIn,
         setUser,
       }}

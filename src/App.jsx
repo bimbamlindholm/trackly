@@ -11,6 +11,7 @@ import AttendancePage from "./pages/AttendancePage"
 import SettingsPage from "./pages/SettingsPage"
 import SupabaseTestPage from "./pages/SupabaseTestPage"
 import CompanyAdminPage from "./pages/CompanyAdminPage"
+import CompanySetupPage from "./pages/CompanySetupPage"
 
 import ProtectedRoute from "./components/ProtectedRoute"
 import AdminRoute from "./components/AdminRoute"
@@ -66,6 +67,15 @@ function App() {
           element={
             <ProtectedRoute>
               <SettingsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/company-setup"
+          element={
+            <ProtectedRoute>
+              <CompanySetupPage />
             </ProtectedRoute>
           }
         />

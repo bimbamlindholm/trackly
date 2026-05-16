@@ -8,7 +8,7 @@ import { supabase } from "../services/supabaseClient"
 function DashboardLayout({ children }) {
   const navigate = useNavigate()
 
-  const { user, isAdmin } = useContext(AuthContext)
+  const { user, isAdmin, activeOrganization } = useContext(AuthContext)
   const { setRecords } = useContext(AttendanceContext)
 
   const displayName =
@@ -39,6 +39,9 @@ function DashboardLayout({ children }) {
           <NavLink to="/tracker">Time Tracker</NavLink>
           <NavLink to="/attendance">Attendance</NavLink>
           <NavLink to="/salary">Salary Tracker</NavLink>
+          <NavLink to="/company-setup">
+            {activeOrganization ? "Company" : "Create Company"}
+          </NavLink>
           {isAdmin && <NavLink to="/admin">Company Admin</NavLink>}
           <NavLink to="/settings">Settings</NavLink>
         </nav>

@@ -1,5 +1,6 @@
--- Trackly company/admin setup
--- Run this in Supabase SQL Editor, then update one user to role = 'admin'.
+-- Trackly company workspace setup
+-- Run this once in Supabase SQL Editor.
+-- Companies create their own workspace in the app; the creator becomes admin.
 
 create table if not exists public.user_profiles (
   id uuid primary key references auth.users(id) on delete cascade,
@@ -12,7 +13,34 @@ create table if not exists public.user_profiles (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.organizations (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  slug text unique not null,
+  created_by uuid references auth.users(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.organization_members (
+  id uuid primary key default gen_random_uuid(),
+  organization_id uuid not null references public.organizations(id) on delete cascade,
+  user_id uuid references auth.users(id) on delete set null,
+  email text not null,
+  full_name text default '',
+  role text not null default 'worker' check (role in ('admin', 'manager', 'worker')),
+  department text default 'Unassigned',
+  position text default 'Worker',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (organization_id, email)
+);
+
 alter table public.user_profiles enable row level security;
+alter table public.organizations enable row level security;
+alter table public.organization_members enable row level security;
+alter table public.attendance_records enable row level security;
+alter table public.user_salary_settings enable row level security;
 
 create or replace function public.handle_new_user_profile()
 returns trigger
@@ -24,13 +52,20 @@ begin
   insert into public.user_profiles (id, email, full_name)
   values (
     new.id,
-    new.email,
+    lower(new.email),
     coalesce(new.raw_user_meta_data->>'full_name', '')
   )
   on conflict (id) do update
-    set email = excluded.email,
+    set email = lower(excluded.email),
         full_name = coalesce(excluded.full_name, public.user_profiles.full_name),
         updated_at = now();
+
+  update public.organization_members
+  set user_id = new.id,
+      full_name = coalesce(nullif(full_name, ''), new.raw_user_meta_data->>'full_name', full_name),
+      updated_at = now()
+  where lower(email) = lower(new.email)
+    and user_id is null;
 
   return new;
 end;
@@ -45,15 +80,15 @@ for each row execute function public.handle_new_user_profile();
 insert into public.user_profiles (id, email, full_name)
 select
   id,
-  email,
+  lower(email),
   coalesce(raw_user_meta_data->>'full_name', '')
 from auth.users
 on conflict (id) do update
-  set email = excluded.email,
+  set email = lower(excluded.email),
       full_name = coalesce(excluded.full_name, public.user_profiles.full_name),
       updated_at = now();
 
-create or replace function public.trackly_is_admin()
+create or replace function public.trackly_is_org_member(target_org uuid)
 returns boolean
 language sql
 stable
@@ -62,16 +97,49 @@ set search_path = public
 as $$
   select exists (
     select 1
-    from public.user_profiles
-    where id = auth.uid()
+    from public.organization_members
+    where organization_id = target_org
+      and lower(email) = lower(auth.jwt()->>'email')
+  );
+$$;
+
+create or replace function public.trackly_is_org_admin(target_org uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.organization_members
+    where organization_id = target_org
+      and lower(email) = lower(auth.jwt()->>'email')
       and role = 'admin'
   );
 $$;
 
+create or replace function public.trackly_can_admin_email(target_email text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.organization_members admin_member
+    join public.organization_members target_member
+      on target_member.organization_id = admin_member.organization_id
+    where lower(admin_member.email) = lower(auth.jwt()->>'email')
+      and admin_member.role = 'admin'
+      and lower(target_member.email) = lower(target_email)
+  );
+$$;
+
 drop policy if exists "Users can read own profile" on public.user_profiles;
-drop policy if exists "Admins can read all profiles" on public.user_profiles;
+drop policy if exists "Admins can read company profiles" on public.user_profiles;
 drop policy if exists "Users can update own profile basics" on public.user_profiles;
-drop policy if exists "Admins can update all profiles" on public.user_profiles;
 
 create policy "Users can read own profile"
 on public.user_profiles
@@ -79,121 +147,169 @@ for select
 to authenticated
 using (id = auth.uid());
 
-create policy "Admins can read all profiles"
+create policy "Admins can read company profiles"
 on public.user_profiles
 for select
 to authenticated
-using (public.trackly_is_admin());
+using (public.trackly_can_admin_email(email));
 
 create policy "Users can update own profile basics"
 on public.user_profiles
 for update
 to authenticated
 using (id = auth.uid())
-with check (id = auth.uid() and role = 'worker');
+with check (id = auth.uid());
 
-create policy "Admins can update all profiles"
-on public.user_profiles
+drop policy if exists "Users can create organizations" on public.organizations;
+drop policy if exists "Members can read own organizations" on public.organizations;
+drop policy if exists "Admins can update own organizations" on public.organizations;
+
+create policy "Users can create organizations"
+on public.organizations
+for insert
+to authenticated
+with check (created_by = auth.uid());
+
+create policy "Members can read own organizations"
+on public.organizations
+for select
+to authenticated
+using (
+  created_by = auth.uid()
+  or public.trackly_is_org_member(id)
+);
+
+create policy "Admins can update own organizations"
+on public.organizations
 for update
 to authenticated
-using (public.trackly_is_admin())
-with check (public.trackly_is_admin());
+using (public.trackly_is_org_admin(id))
+with check (public.trackly_is_org_admin(id));
 
-alter table public.attendance_records enable row level security;
+drop policy if exists "Members can read company members" on public.organization_members;
+drop policy if exists "Admins and creators can add company members" on public.organization_members;
+drop policy if exists "Admins can update company members" on public.organization_members;
+drop policy if exists "Admins can delete company members" on public.organization_members;
+
+create policy "Members can read company members"
+on public.organization_members
+for select
+to authenticated
+using (public.trackly_is_org_member(organization_id));
+
+create policy "Admins and creators can add company members"
+on public.organization_members
+for insert
+to authenticated
+with check (
+  public.trackly_is_org_admin(organization_id)
+  or exists (
+    select 1
+    from public.organizations
+    where organizations.id = organization_id
+      and organizations.created_by = auth.uid()
+  )
+);
+
+create policy "Admins can update company members"
+on public.organization_members
+for update
+to authenticated
+using (public.trackly_is_org_admin(organization_id))
+with check (public.trackly_is_org_admin(organization_id));
+
+create policy "Admins can delete company members"
+on public.organization_members
+for delete
+to authenticated
+using (public.trackly_is_org_admin(organization_id));
 
 drop policy if exists "Users can read own attendance" on public.attendance_records;
 drop policy if exists "Users can insert own attendance" on public.attendance_records;
 drop policy if exists "Users can update own attendance" on public.attendance_records;
 drop policy if exists "Users can delete own attendance" on public.attendance_records;
-drop policy if exists "Admins can read all attendance" on public.attendance_records;
-drop policy if exists "Admins can update all attendance" on public.attendance_records;
-drop policy if exists "Admins can delete all attendance" on public.attendance_records;
+drop policy if exists "Admins can read company attendance" on public.attendance_records;
+drop policy if exists "Admins can update company attendance" on public.attendance_records;
+drop policy if exists "Admins can delete company attendance" on public.attendance_records;
 
 create policy "Users can read own attendance"
 on public.attendance_records
 for select
 to authenticated
-using (user_email = auth.jwt()->>'email');
+using (lower(user_email) = lower(auth.jwt()->>'email'));
 
 create policy "Users can insert own attendance"
 on public.attendance_records
 for insert
 to authenticated
-with check (user_email = auth.jwt()->>'email');
+with check (lower(user_email) = lower(auth.jwt()->>'email'));
 
 create policy "Users can update own attendance"
 on public.attendance_records
 for update
 to authenticated
-using (user_email = auth.jwt()->>'email')
-with check (user_email = auth.jwt()->>'email');
+using (lower(user_email) = lower(auth.jwt()->>'email'))
+with check (lower(user_email) = lower(auth.jwt()->>'email'));
 
 create policy "Users can delete own attendance"
 on public.attendance_records
 for delete
 to authenticated
-using (user_email = auth.jwt()->>'email');
+using (lower(user_email) = lower(auth.jwt()->>'email'));
 
-create policy "Admins can read all attendance"
+create policy "Admins can read company attendance"
 on public.attendance_records
 for select
 to authenticated
-using (public.trackly_is_admin());
+using (public.trackly_can_admin_email(user_email));
 
-create policy "Admins can update all attendance"
+create policy "Admins can update company attendance"
 on public.attendance_records
 for update
 to authenticated
-using (public.trackly_is_admin())
-with check (public.trackly_is_admin());
+using (public.trackly_can_admin_email(user_email))
+with check (public.trackly_can_admin_email(user_email));
 
-create policy "Admins can delete all attendance"
+create policy "Admins can delete company attendance"
 on public.attendance_records
 for delete
 to authenticated
-using (public.trackly_is_admin());
-
-alter table public.user_salary_settings enable row level security;
+using (public.trackly_can_admin_email(user_email));
 
 drop policy if exists "Users can read own salary settings" on public.user_salary_settings;
 drop policy if exists "Users can insert own salary settings" on public.user_salary_settings;
 drop policy if exists "Users can update own salary settings" on public.user_salary_settings;
-drop policy if exists "Admins can read all salary settings" on public.user_salary_settings;
-drop policy if exists "Admins can update all salary settings" on public.user_salary_settings;
+drop policy if exists "Admins can read company salary settings" on public.user_salary_settings;
+drop policy if exists "Admins can update company salary settings" on public.user_salary_settings;
 
 create policy "Users can read own salary settings"
 on public.user_salary_settings
 for select
 to authenticated
-using (user_email = auth.jwt()->>'email');
+using (lower(user_email) = lower(auth.jwt()->>'email'));
 
 create policy "Users can insert own salary settings"
 on public.user_salary_settings
 for insert
 to authenticated
-with check (user_email = auth.jwt()->>'email');
+with check (lower(user_email) = lower(auth.jwt()->>'email'));
 
 create policy "Users can update own salary settings"
 on public.user_salary_settings
 for update
 to authenticated
-using (user_email = auth.jwt()->>'email')
-with check (user_email = auth.jwt()->>'email');
+using (lower(user_email) = lower(auth.jwt()->>'email'))
+with check (lower(user_email) = lower(auth.jwt()->>'email'));
 
-create policy "Admins can read all salary settings"
+create policy "Admins can read company salary settings"
 on public.user_salary_settings
 for select
 to authenticated
-using (public.trackly_is_admin());
+using (public.trackly_can_admin_email(user_email));
 
-create policy "Admins can update all salary settings"
+create policy "Admins can update company salary settings"
 on public.user_salary_settings
 for update
 to authenticated
-using (public.trackly_is_admin())
-with check (public.trackly_is_admin());
-
--- Replace this email with your admin login email after running the setup.
--- update public.user_profiles
--- set role = 'admin', department = 'Management', position = 'Administrator'
--- where email = 'your-email@example.com';
+using (public.trackly_can_admin_email(user_email))
+with check (public.trackly_can_admin_email(user_email));

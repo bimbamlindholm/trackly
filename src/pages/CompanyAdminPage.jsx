@@ -14,10 +14,16 @@ const pesoFormatter = new Intl.NumberFormat("en-PH", {
 })
 
 function CompanyAdminPage() {
-  const { profile } = useContext(AuthContext)
+  const { profile, activeOrganization, activeMembership } =
+    useContext(AuthContext)
   const [records, setRecords] = useState([])
   const [profiles, setProfiles] = useState([])
   const [salarySettings, setSalarySettings] = useState([])
+  const [members, setMembers] = useState([])
+  const [inviteEmail, setInviteEmail] = useState("")
+  const [inviteName, setInviteName] = useState("")
+  const [inviteDepartment, setInviteDepartment] = useState("")
+  const [invitePosition, setInvitePosition] = useState("")
   const [selectedMonth, setSelectedMonth] = useState("")
   const [selectedWorker, setSelectedWorker] = useState("all")
   const [loading, setLoading] = useState(true)
@@ -25,26 +31,55 @@ function CompanyAdminPage() {
 
   useEffect(() => {
     const fetchCompanyData = async () => {
+      if (!activeOrganization?.id) {
+        setLoading(false)
+        return
+      }
+
       setLoading(true)
       setError("")
 
-      const [
-        attendanceResponse,
-        profilesResponse,
-        salaryResponse,
-      ] = await Promise.all([
-        supabase
-          .from("attendance_records")
-          .select("*")
-          .order("timestamp", { ascending: true }),
-        supabase
-          .from("user_profiles")
-          .select("id,email,full_name,role,department,position")
-          .order("full_name", { ascending: true }),
-        supabase
-          .from("user_salary_settings")
-          .select("*"),
-      ])
+      const membersResponse = await supabase
+        .from("organization_members")
+        .select("*")
+        .eq("organization_id", activeOrganization.id)
+        .order("full_name", { ascending: true })
+
+      if (membersResponse.error) {
+        setError(membersResponse.error.message)
+        setLoading(false)
+        return
+      }
+
+      const companyMembers = membersResponse.data || []
+      const memberEmails = companyMembers.map((member) => member.email)
+
+      if (memberEmails.length === 0) {
+        setMembers([])
+        setRecords([])
+        setProfiles([])
+        setSalarySettings([])
+        setLoading(false)
+        return
+      }
+
+      const [attendanceResponse, profilesResponse, salaryResponse] =
+        await Promise.all([
+          supabase
+            .from("attendance_records")
+            .select("*")
+            .in("user_email", memberEmails)
+            .order("timestamp", { ascending: true }),
+          supabase
+            .from("user_profiles")
+            .select("id,email,full_name,role,department,position")
+            .in("email", memberEmails)
+            .order("full_name", { ascending: true }),
+          supabase
+            .from("user_salary_settings")
+            .select("*")
+            .in("user_email", memberEmails),
+        ])
 
       if (attendanceResponse.error) {
         setError(attendanceResponse.error.message)
@@ -52,6 +87,7 @@ function CompanyAdminPage() {
         return
       }
 
+      setMembers(companyMembers)
       setRecords(attendanceResponse.data || [])
       setProfiles(profilesResponse.data || [])
       setSalarySettings(salaryResponse.data || [])
@@ -59,7 +95,49 @@ function CompanyAdminPage() {
     }
 
     fetchCompanyData()
-  }, [])
+  }, [activeOrganization])
+
+  const addWorker = async (event) => {
+    event.preventDefault()
+
+    if (!activeOrganization?.id || !inviteEmail.trim()) return
+
+    const normalizedEmail = inviteEmail.trim().toLowerCase()
+
+    const { error: memberError } = await supabase
+      .from("organization_members")
+      .insert([
+        {
+          organization_id: activeOrganization.id,
+          email: normalizedEmail,
+          full_name: inviteName.trim() || normalizedEmail,
+          role: "worker",
+          department: inviteDepartment.trim() || "Unassigned",
+          position: invitePosition.trim() || "Worker",
+        },
+      ])
+
+    if (memberError) {
+      alert(memberError.message)
+      return
+    }
+
+    setMembers([
+      ...members,
+      {
+        organization_id: activeOrganization.id,
+        email: normalizedEmail,
+        full_name: inviteName.trim() || normalizedEmail,
+        role: "worker",
+        department: inviteDepartment.trim() || "Unassigned",
+        position: invitePosition.trim() || "Worker",
+      },
+    ])
+    setInviteEmail("")
+    setInviteName("")
+    setInviteDepartment("")
+    setInvitePosition("")
+  }
 
   const filteredRecords = useMemo(() => {
     return records.filter((record) => {
@@ -83,13 +161,19 @@ function CompanyAdminPage() {
   }, [salarySettings])
 
   const workers = useMemo(() => {
+    const memberEmails = members.map((item) => item.email).filter(Boolean)
     const profileEmails = profiles.map((item) => item.email).filter(Boolean)
-    const recordEmails = records.map((record) => record.user_email).filter(Boolean)
-    const emails = [...new Set([...profileEmails, ...recordEmails])]
+    const recordEmails = records
+      .map((record) => record.user_email)
+      .filter(Boolean)
+    const emails = [
+      ...new Set([...memberEmails, ...profileEmails, ...recordEmails]),
+    ]
 
     return emails
       .map((email) => {
         const workerProfile = profiles.find((item) => item.email === email)
+        const workerMember = members.find((item) => item.email === email)
         const workerRecords = filteredRecords.filter(
           (record) => record.user_email === email
         )
@@ -117,10 +201,16 @@ function CompanyAdminPage() {
 
         return {
           email,
-          name: workerProfile?.full_name || email,
-          role: workerProfile?.role || "worker",
-          department: workerProfile?.department || "Unassigned",
-          position: workerProfile?.position || "Worker",
+          name: workerMember?.full_name || workerProfile?.full_name || email,
+          role: workerMember?.role || workerProfile?.role || "worker",
+          department:
+            workerMember?.department ||
+            workerProfile?.department ||
+            "Unassigned",
+          position:
+            workerMember?.position ||
+            workerProfile?.position ||
+            "Worker",
           hourlyRate,
           recordCount: workerRecords.length,
           dayCount: dailySummaries.length,
@@ -129,7 +219,7 @@ function CompanyAdminPage() {
         }
       })
       .sort((a, b) => a.name.localeCompare(b.name))
-  }, [filteredRecords, profiles, records, salaryByEmail])
+  }, [filteredRecords, members, profiles, records, salaryByEmail])
 
   const companyTotals = workers.reduce(
     (summary, worker) => ({
@@ -161,9 +251,17 @@ function CompanyAdminPage() {
           </p>
         </div>
 
-        <div className="admin-badge">
-          Signed in as {profile?.full_name || profile?.email || "Admin"}
-        </div>
+        {activeOrganization ? (
+          <div className="admin-badge">
+            {activeOrganization.name} - {activeMembership?.role || "member"} -{" "}
+            {profile?.full_name || profile?.email || "Admin"}
+          </div>
+        ) : (
+          <div className="review-box">
+            <strong>No company workspace yet</strong>
+            <p>Create a company workspace first to monitor workers.</p>
+          </div>
+        )}
 
         {error && (
           <div className="review-box">
@@ -171,7 +269,7 @@ function CompanyAdminPage() {
             <p>{error}</p>
             <p>
               Run the SQL setup file in `supabase/company-admin-setup.sql`,
-              then mark your user as admin.
+              then create a company workspace from Trackly.
             </p>
           </div>
         )}
@@ -244,6 +342,48 @@ function CompanyAdminPage() {
             </button>
           </div>
         </div>
+
+        <form className="tracker-card login-form" onSubmit={addWorker}>
+          <h2>Add Worker to Company</h2>
+          <p>
+            Add the worker email they use to register/login to Trackly. Their
+            DTR will appear here once they create records.
+          </p>
+
+          <input
+            className="custom-input"
+            type="email"
+            placeholder="Worker email"
+            value={inviteEmail}
+            onChange={(event) => setInviteEmail(event.target.value)}
+            required
+          />
+
+          <input
+            className="custom-input"
+            placeholder="Worker name"
+            value={inviteName}
+            onChange={(event) => setInviteName(event.target.value)}
+          />
+
+          <input
+            className="custom-input"
+            placeholder="Department"
+            value={inviteDepartment}
+            onChange={(event) => setInviteDepartment(event.target.value)}
+          />
+
+          <input
+            className="custom-input"
+            placeholder="Position"
+            value={invitePosition}
+            onChange={(event) => setInvitePosition(event.target.value)}
+          />
+
+          <button className="custom-button" type="submit">
+            Add Worker
+          </button>
+        </form>
 
         <div className="tracker-card">
           <h2>Worker Monitoring</h2>
