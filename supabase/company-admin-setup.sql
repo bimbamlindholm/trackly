@@ -63,6 +63,9 @@ alter table public.attendance_records
   add column if not exists photo_data_url text,
   add column if not exists photo_captured_at timestamptz;
 
+alter table public.user_salary_settings
+  add column if not exists paid_breaks boolean not null default false;
+
 create or replace function public.handle_new_user_profile()
 returns trigger
 language plpgsql

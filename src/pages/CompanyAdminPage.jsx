@@ -244,7 +244,10 @@ function CompanyAdminPage() {
     return salarySettings.reduce((settings, item) => {
       return {
         ...settings,
-        [item.user_email]: Number(item.hourly_rate) || 0,
+        [item.user_email]: {
+          hourlyRate: Number(item.hourly_rate) || 0,
+          paidBreaks: Boolean(item.paid_breaks),
+        },
       }
     }, {})
   }, [salarySettings])
@@ -266,11 +269,15 @@ function CompanyAdminPage() {
         const workerRecords = filteredRecords.filter(
           (record) => record.user_email === email
         )
-        const hourlyRate = salaryByEmail[email] || 0
+        const salaryConfig = salaryByEmail[email] || {
+          hourlyRate: 0,
+          paidBreaks: false,
+        }
         const dailySummaries = getDailyAttendanceSummaries(
           workerRecords,
-          hourlyRate,
-          8
+          salaryConfig.hourlyRate,
+          8,
+          salaryConfig.paidBreaks
         )
         const totals = dailySummaries.reduce(
           (summary, day) => ({
@@ -301,7 +308,8 @@ function CompanyAdminPage() {
             workerMember?.position ||
             workerProfile?.position ||
             "Worker",
-          hourlyRate,
+          hourlyRate: salaryConfig.hourlyRate,
+          paidBreaks: salaryConfig.paidBreaks,
           recordCount: workerRecords.length,
           dayCount: dailySummaries.length,
           dailySummaries,

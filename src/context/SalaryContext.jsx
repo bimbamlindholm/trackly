@@ -14,6 +14,7 @@ function SalaryProvider({ children }) {
 
   const [hourlyRate, setHourlyRate] = useState(100)
   const [hoursPerDay, setHoursPerDay] = useState(8)
+  const [paidBreaks, setPaidBreaks] = useState(false)
   const [salaryError, setSalaryError] = useState("")
 
   const createDefaultSettings = useCallback(async () => {
@@ -26,6 +27,7 @@ function SalaryProvider({ children }) {
           user_email: user.email,
           hourly_rate: 100,
           hours_per_day: 8,
+          paid_breaks: false,
         },
       ])
 
@@ -51,6 +53,7 @@ function SalaryProvider({ children }) {
         await createDefaultSettings()
         setHourlyRate(100)
         setHoursPerDay(8)
+        setPaidBreaks(false)
       }
 
       if (error.code !== "PGRST116") {
@@ -62,26 +65,31 @@ function SalaryProvider({ children }) {
 
     setHourlyRate(Number(data.hourly_rate) || 0)
     setHoursPerDay(Number(data.hours_per_day) || 0)
+    setPaidBreaks(Boolean(data.paid_breaks))
     setSalaryError("")
   }, [createDefaultSettings, user])
 
   const updateSalarySettings = async (
     newHourlyRate,
-    newHoursPerDay
+    newHoursPerDay,
+    newPaidBreaks = paidBreaks
   ) => {
     if (!user?.email) return
 
     const normalizedHourlyRate = Number(newHourlyRate) || 0
     const normalizedHoursPerDay = Number(newHoursPerDay) || 0
+    const normalizedPaidBreaks = Boolean(newPaidBreaks)
 
     setHourlyRate(normalizedHourlyRate)
     setHoursPerDay(normalizedHoursPerDay)
+    setPaidBreaks(normalizedPaidBreaks)
 
     const { data, error } = await supabase
       .from("user_salary_settings")
       .update({
         hourly_rate: normalizedHourlyRate,
         hours_per_day: normalizedHoursPerDay,
+        paid_breaks: normalizedPaidBreaks,
       })
       .eq("user_email", user.email)
       .select("user_email")
@@ -99,6 +107,7 @@ function SalaryProvider({ children }) {
             user_email: user.email,
             hourly_rate: normalizedHourlyRate,
             hours_per_day: normalizedHoursPerDay,
+            paid_breaks: normalizedPaidBreaks,
           },
         ])
 
@@ -115,6 +124,7 @@ function SalaryProvider({ children }) {
     if (!user?.email) {
       setHourlyRate(100)
       setHoursPerDay(8)
+      setPaidBreaks(false)
       setSalaryError("")
       return
     }
@@ -127,6 +137,7 @@ function SalaryProvider({ children }) {
       value={{
         hourlyRate,
         hoursPerDay,
+        paidBreaks,
         salaryError,
         updateSalarySettings,
       }}

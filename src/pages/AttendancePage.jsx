@@ -13,6 +13,7 @@ import {
   calculateBreakHours,
   calculateWorkedHours,
   calculateEstimatedSalary,
+  calculatePayableHours,
   formatDuration,
   getAttendanceIssues,
   getDailyAttendanceSummaries,
@@ -31,7 +32,7 @@ function getTimestampFromDateAndTime(date, time) {
 
 function AttendancePage() {
   const { records, setRecords } = useContext(AttendanceContext)
-  const { hourlyRate, hoursPerDay } = useContext(SalaryContext)
+  const { hourlyRate, hoursPerDay, paidBreaks } = useContext(SalaryContext)
 
   const [editingId, setEditingId] = useState(null)
   const [editType, setEditType] = useState("")
@@ -52,11 +53,17 @@ function AttendancePage() {
   const grossHours = calculateGrossWorkedHours(filteredRecords)
   const breakHours = calculateBreakHours(filteredRecords)
   const netWorkedHours = calculateWorkedHours(filteredRecords)
-  const estimatedSalary = calculateEstimatedSalary(filteredRecords, hourlyRate)
+  const payableHours = calculatePayableHours(filteredRecords, paidBreaks)
+  const estimatedSalary = calculateEstimatedSalary(
+    filteredRecords,
+    hourlyRate,
+    paidBreaks
+  )
   const dailySummaries = getDailyAttendanceSummaries(
     filteredRecords,
     hourlyRate,
-    hoursPerDay
+    hoursPerDay,
+    paidBreaks
   )
   const recordsNeedingReview = dailySummaries.filter(
     (summary) => summary.status === "Needs Review"
@@ -158,6 +165,7 @@ function AttendancePage() {
       "Gross Hours",
       "Break Hours",
       "Net Hours",
+      "Payable Hours",
       "Overtime Hours",
       "Undertime Hours",
       "Estimated Earnings",
@@ -172,6 +180,7 @@ function AttendancePage() {
       summary.grossHours.toFixed(2),
       summary.breakHours.toFixed(2),
       summary.netHours.toFixed(2),
+      summary.payableHours.toFixed(2),
       summary.overtimeHours.toFixed(2),
       summary.undertimeHours.toFixed(2),
       summary.earnings.toFixed(2),
@@ -218,16 +227,22 @@ function AttendancePage() {
     doc.text(`Gross Hours: ${grossHours.toFixed(2)}`, 14, 40)
     doc.text(`Break Hours: ${breakHours.toFixed(2)}`, 14, 48)
     doc.text(`Net Worked Hours: ${netWorkedHours.toFixed(2)}`, 14, 56)
-    doc.text(`Estimated Earnings: PHP ${estimatedSalary.toFixed(2)}`, 14, 64)
+    doc.text(`Payable Hours: ${payableHours.toFixed(2)}`, 14, 64)
+    doc.text(
+      `Break Policy: ${paidBreaks ? "Paid breaks" : "Unpaid breaks"}`,
+      14,
+      72
+    )
+    doc.text(`Estimated Earnings: PHP ${estimatedSalary.toFixed(2)}`, 14, 80)
 
     autoTable(doc, {
-      startY: 75,
-      head: [["Date", "Time In", "Time Out", "Net", "OT", "Pay", "Status"]],
+      startY: 92,
+      head: [["Date", "Time In", "Time Out", "Payable", "OT", "Pay", "Status"]],
       body: dailySummaries.map((summary) => [
         summary.date,
         summary.firstTimeIn,
         summary.lastTimeOut,
-        formatDuration(summary.netHours),
+        formatDuration(summary.payableHours),
         formatDuration(summary.overtimeHours),
         `PHP ${summary.earnings.toFixed(2)}`,
         summary.status,
@@ -262,8 +277,8 @@ function AttendancePage() {
           </div>
 
           <div className="dashboard-card">
-            <h2>Net Worked Hours</h2>
-            <p>{formatDuration(netWorkedHours)}</p>
+            <h2>Payable Hours</h2>
+            <p>{formatDuration(payableHours)}</p>
           </div>
 
           <div className="dashboard-card">
@@ -320,6 +335,7 @@ function AttendancePage() {
                 <span>Time In</span>
                 <span>Time Out</span>
                 <span>Net</span>
+                <span>Payable</span>
                 <span>Pay</span>
                 <span>Status</span>
               </div>
@@ -330,6 +346,7 @@ function AttendancePage() {
                   <span>{summary.firstTimeIn}</span>
                   <span>{summary.lastTimeOut}</span>
                   <span>{formatDuration(summary.netHours)}</span>
+                  <span>{formatDuration(summary.payableHours)}</span>
                   <span>{pesoFormatter.format(summary.earnings)}</span>
                   <span
                     className={

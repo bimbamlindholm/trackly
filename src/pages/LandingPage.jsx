@@ -121,6 +121,12 @@ function LandingPage() {
           </article>
         </div>
       </section>
+
+      <footer className="public-footer">
+        <Link to="/privacy">Privacy Policy</Link>
+        <Link to="/terms">Terms and Conditions</Link>
+        <Link to="/support">Support</Link>
+      </footer>
     </main>
   )
 }

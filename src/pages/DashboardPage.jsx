@@ -9,9 +9,9 @@ import { AuthContext } from "../context/authContextValue"
 import {
   calculateGrossWorkedHours,
   calculateBreakHours,
-  calculateWorkedHours,
   calculateOvertimeHours,
   calculateEstimatedSalary,
+  calculatePayableHours,
   formatDuration,
   getDailyAttendanceSummaries,
 } from "../utils/payrollUtils"
@@ -29,6 +29,7 @@ function DashboardPage() {
   const {
     hourlyRate,
     hoursPerDay,
+    paidBreaks,
   } = useContext(SalaryContext)
 
   const { user } = useContext(AuthContext)
@@ -46,13 +47,18 @@ function DashboardPage() {
 
   const grossHours = calculateGrossWorkedHours(records)
   const breakHours = calculateBreakHours(records)
-  const netWorkedHours = calculateWorkedHours(records)
-  const overtimeHours = calculateOvertimeHours(records, hoursPerDay)
-  const estimatedSalary = calculateEstimatedSalary(records, hourlyRate)
+  const payableHours = calculatePayableHours(records, paidBreaks)
+  const overtimeHours = calculateOvertimeHours(records, hoursPerDay, paidBreaks)
+  const estimatedSalary = calculateEstimatedSalary(
+    records,
+    hourlyRate,
+    paidBreaks
+  )
   const dailySummaries = getDailyAttendanceSummaries(
     records,
     hourlyRate,
-    hoursPerDay
+    hoursPerDay,
+    paidBreaks
   )
   const completeDays = dailySummaries.filter(
     (summary) => summary.status === "Complete"
@@ -103,8 +109,8 @@ function DashboardPage() {
           </div>
 
           <div className="dashboard-card">
-            <h2>Net Worked Hours</h2>
-            <p>{formatDuration(netWorkedHours)}</p>
+            <h2>Payable Hours</h2>
+            <p>{formatDuration(payableHours)}</p>
           </div>
 
           <div className="dashboard-card">
@@ -138,6 +144,7 @@ function DashboardPage() {
               <div className="summary-row summary-head">
                 <span>Date</span>
                 <span>Net</span>
+                <span>Payable</span>
                 <span>Overtime</span>
                 <span>Status</span>
               </div>
@@ -146,6 +153,7 @@ function DashboardPage() {
                 <div className="summary-row" key={summary.date}>
                   <span>{summary.date}</span>
                   <span>{formatDuration(summary.netHours)}</span>
+                  <span>{formatDuration(summary.payableHours)}</span>
                   <span>{formatDuration(summary.overtimeHours)}</span>
                   <span
                     className={

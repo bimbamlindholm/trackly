@@ -1,4 +1,5 @@
 import { useContext } from "react"
+import { Link } from "react-router-dom"
 
 import DashboardLayout from "../layouts/DashboardLayout"
 import InstallAppButton from "../components/InstallAppButton"
@@ -81,6 +82,17 @@ function SettingsPage() {
 
           <div className="record-item">
             App Mode: Installable PWA for supported browsers
+          </div>
+
+          <div className="record-item">
+            Camera Time Mark: Captured photos include date, time, and account
+            email when saved with a DTR record.
+          </div>
+
+          <div className="legal-links in-app-links">
+            <Link to="/privacy">Privacy Policy</Link>
+            <Link to="/terms">Terms and Conditions</Link>
+            <Link to="/support">Support and Data Requests</Link>
           </div>
 
           <button className="custom-button" onClick={toggleTheme}>

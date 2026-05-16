@@ -12,6 +12,7 @@ function SalaryPage() {
   const {
     hourlyRate,
     hoursPerDay,
+    paidBreaks,
     salaryError,
     updateSalarySettings,
   } = useContext(SalaryContext)
@@ -34,7 +35,7 @@ function SalaryPage() {
               placeholder="Hourly rate"
               value={hourlyRate}
               onChange={(e) =>
-                updateSalarySettings(e.target.value, hoursPerDay)
+                updateSalarySettings(e.target.value, hoursPerDay, paidBreaks)
               }
               className="custom-input"
               min="0"
@@ -46,12 +47,27 @@ function SalaryPage() {
               placeholder="Required hours per day"
               value={hoursPerDay}
               onChange={(e) =>
-                updateSalarySettings(hourlyRate, e.target.value)
+                updateSalarySettings(hourlyRate, e.target.value, paidBreaks)
               }
               className="custom-input"
               min="0"
               step="0.25"
             />
+
+            <label className="settings-toggle">
+              <input
+                type="checkbox"
+                checked={paidBreaks}
+                onChange={(event) =>
+                  updateSalarySettings(
+                    hourlyRate,
+                    hoursPerDay,
+                    event.target.checked
+                  )
+                }
+              />
+              <span>Paid breaks</span>
+            </label>
           </div>
 
           {salaryError && (
@@ -63,6 +79,11 @@ function SalaryPage() {
             <div className="record-item">
               {pesoFormatter.format(estimatedDailySalary)}
             </div>
+            <p className="helper-text">
+              {paidBreaks
+                ? "Break time is included in payable salary hours."
+                : "Break time is excluded from payable salary hours."}
+            </p>
           </div>
         </div>
       </div>

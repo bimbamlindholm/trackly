@@ -40,7 +40,15 @@ function AuthShell({ children }) {
           </div>
         </div>
 
-        <div className="form-panel">{children}</div>
+        <div className="form-panel">
+          {children}
+
+          <div className="auth-legal-links">
+            <Link to="/privacy">Privacy</Link>
+            <Link to="/terms">Terms</Link>
+            <Link to="/support">Support</Link>
+          </div>
+        </div>
       </section>
     </main>
   )

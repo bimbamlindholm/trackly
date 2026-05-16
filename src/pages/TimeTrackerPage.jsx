@@ -98,19 +98,21 @@ function TimeTrackerPage() {
     const capturedAt = new Date()
     const stampLines = [
       "Trackly Time Mark",
-      capturedAt.toLocaleString(),
+      `Date: ${capturedAt.toLocaleDateString()}`,
+      `Time: ${capturedAt.toLocaleTimeString()}`,
       user?.email || "Unknown user",
     ]
 
     context.fillStyle = "rgba(4, 18, 11, 0.82)"
-    context.fillRect(0, canvas.height - 116, canvas.width, 116)
+    context.fillRect(0, canvas.height - 142, canvas.width, 142)
     context.fillStyle = "#79ff9c"
     context.font = "700 28px Arial"
-    context.fillText(stampLines[0], 24, canvas.height - 72)
+    context.fillText(stampLines[0], 24, canvas.height - 100)
     context.fillStyle = "#ffffff"
     context.font = "500 22px Arial"
-    context.fillText(stampLines[1], 24, canvas.height - 42)
-    context.fillText(stampLines[2], 24, canvas.height - 16)
+    context.fillText(stampLines[1], 24, canvas.height - 70)
+    context.fillText(stampLines[2], 24, canvas.height - 42)
+    context.fillText(stampLines[3], 24, canvas.height - 16)
 
     setTimeMarkPhoto(canvas.toDataURL("image/jpeg", 0.82))
     setPhotoCapturedAt(capturedAt.toISOString())

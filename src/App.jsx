@@ -12,9 +12,9 @@ import TimeTrackerPage from "./pages/TimeTrackerPage"
 import SalaryPage from "./pages/SalaryPage"
 import AttendancePage from "./pages/AttendancePage"
 import SettingsPage from "./pages/SettingsPage"
-import SupabaseTestPage from "./pages/SupabaseTestPage"
 import CompanyAdminPage from "./pages/CompanyAdminPage"
 import CompanySetupPage from "./pages/CompanySetupPage"
+import LegalPage from "./pages/LegalPage"
 
 import ProtectedRoute from "./components/ProtectedRoute"
 import AdminRoute from "./components/AdminRoute"
@@ -31,7 +31,9 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/register" element={<RegisterPage />} />
-        <Route path="/supabase-test" element={<SupabaseTestPage />} />
+        <Route path="/privacy" element={<LegalPage type="privacy" />} />
+        <Route path="/terms" element={<LegalPage type="terms" />} />
+        <Route path="/support" element={<LegalPage type="support" />} />
 
         <Route
           path="/dashboard"

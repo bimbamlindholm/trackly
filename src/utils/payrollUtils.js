@@ -109,7 +109,17 @@ export function calculateWorkedHours(records) {
   return millisecondsToHours(getWorkedMilliseconds(records))
 }
 
-export function calculateOvertimeHours(records, requiredHoursPerDay) {
+export function calculatePayableHours(records, paidBreaks = false) {
+  return paidBreaks
+    ? calculateGrossWorkedHours(records)
+    : calculateWorkedHours(records)
+}
+
+export function calculateOvertimeHours(
+  records,
+  requiredHoursPerDay,
+  paidBreaks = false
+) {
   const requiredHours = Number(requiredHoursPerDay) || 0
 
   if (requiredHours <= 0) return 0
@@ -117,15 +127,15 @@ export function calculateOvertimeHours(records, requiredHoursPerDay) {
   const recordsByDate = groupRecordsByDate(records)
 
   return Object.values(recordsByDate).reduce((total, dailyRecords) => {
-    const dailyWorkedHours = calculateWorkedHours(dailyRecords)
+    const dailyWorkedHours = calculatePayableHours(dailyRecords, paidBreaks)
     const dailyOvertimeHours = dailyWorkedHours - requiredHours
 
     return total + (dailyOvertimeHours > 0 ? dailyOvertimeHours : 0)
   }, 0)
 }
 
-export function calculateEstimatedSalary(records, hourlyRate) {
-  const workedHours = calculateWorkedHours(records)
+export function calculateEstimatedSalary(records, hourlyRate, paidBreaks = false) {
+  const workedHours = calculatePayableHours(records, paidBreaks)
 
   return workedHours * (Number(hourlyRate) || 0)
 }
@@ -218,7 +228,8 @@ export function getAttendanceIssues(records) {
 export function getDailyAttendanceSummaries(
   records,
   hourlyRate,
-  requiredHoursPerDay
+  requiredHoursPerDay,
+  paidBreaks = false
 ) {
   const requiredHours = Number(requiredHoursPerDay) || 0
   const rate = Number(hourlyRate) || 0
@@ -236,10 +247,14 @@ export function getDailyAttendanceSummaries(
       const grossHours = calculateGrossWorkedHours(sortedDailyRecords)
       const breakHours = calculateBreakHours(sortedDailyRecords)
       const netHours = calculateWorkedHours(sortedDailyRecords)
+      const payableHours = calculatePayableHours(
+        sortedDailyRecords,
+        paidBreaks
+      )
       const overtimeHours =
-        requiredHours > 0 ? Math.max(netHours - requiredHours, 0) : 0
+        requiredHours > 0 ? Math.max(payableHours - requiredHours, 0) : 0
       const undertimeHours =
-        requiredHours > 0 ? Math.max(requiredHours - netHours, 0) : 0
+        requiredHours > 0 ? Math.max(requiredHours - payableHours, 0) : 0
       const issues = getAttendanceIssues(sortedDailyRecords)
 
       return {
@@ -249,9 +264,10 @@ export function getDailyAttendanceSummaries(
         grossHours,
         breakHours,
         netHours,
+        payableHours,
         overtimeHours,
         undertimeHours,
-        earnings: netHours * rate,
+        earnings: payableHours * rate,
         recordCount: sortedDailyRecords.length,
         status: issues.length === 0 ? "Complete" : "Needs Review",
         issues,
