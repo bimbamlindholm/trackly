@@ -50,7 +50,7 @@ create table if not exists public.organization_invites (
 
 create table if not exists public.attendance_correction_requests (
   id uuid primary key default gen_random_uuid(),
-  attendance_record_id uuid references public.attendance_records(id) on delete set null,
+  attendance_record_id bigint references public.attendance_records(id) on delete set null,
   requested_by_email text not null,
   message text not null,
   status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
