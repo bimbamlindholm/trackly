@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
 
+import AuthShell from "../components/AuthShell"
 import { supabase } from "../services/supabaseClient"
 
 function ForgotPasswordPage() {
@@ -28,34 +29,41 @@ function ForgotPasswordPage() {
   }
 
   return (
-    <div className="login-page">
-      <div className="login-card">
+    <AuthShell>
+      <form className="form-box login-box" onSubmit={handleResetPassword}>
+        <div className="top-form-logo">
+          <img src="/ICON-01.png" alt="Trackly logo" />
+        </div>
+
         <h1>Reset Password</h1>
 
-        <p>Enter your email and Trackly will send a reset link.</p>
+        <p className="subtitle">
+          Enter your email and Trackly will send a reset link.
+        </p>
 
-        <form className="login-form" onSubmit={handleResetPassword}>
+        <label>
+          Email address
           <input
-            className="custom-input"
             type="email"
-            placeholder="Email address"
+            placeholder="Enter your email"
+            autoComplete="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             required
           />
+        </label>
 
-          <button className="custom-button" type="submit">
-            {loading ? "Sending..." : "Send Reset Link"}
-          </button>
-        </form>
+        <button className="main-button" type="submit" disabled={loading}>
+          {loading ? "Sending..." : "Send Reset Link"}
+        </button>
 
         {message && <p className="form-message">{message}</p>}
 
-        <p className="auth-link">
-          Remembered your password? <Link to="/login">Login</Link>
+        <p className="switch">
+          Remembered your password? <Link to="/login">Log In</Link>
         </p>
-      </div>
-    </div>
+      </form>
+    </AuthShell>
   )
 }
 

@@ -1,5 +1,8 @@
 import { useState } from "react"
 import { useNavigate, Link } from "react-router-dom"
+
+import AuthShell from "../components/AuthShell"
+import EyeIcon from "../components/EyeIcon"
 import { supabase } from "../services/supabaseClient"
 
 function RegisterPage() {
@@ -9,6 +12,7 @@ function RegisterPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleRegister = async (e) => {
     e.preventDefault()
@@ -38,57 +42,70 @@ function RegisterPage() {
   }
 
   return (
-    <div className="auth-container">
-      <form
-        className="auth-card"
-        onSubmit={handleRegister}
-      >
-        <h1>Create Account</h1>
+    <AuthShell>
+      <form className="form-box register-box" onSubmit={handleRegister}>
+        <h1>Create account</h1>
+        <p className="subtitle">
+          Register your details to start using the DTR system.
+        </p>
 
-        <input
-          type="text"
-          placeholder="Full Name"
-          value={name}
-          onChange={(e) =>
-            setName(e.target.value)
-          }
-          required
-        />
+        <label>
+          Full name
+          <input
+            type="text"
+            placeholder="Enter your full name"
+            autoComplete="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
+        </label>
 
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) =>
-            setEmail(e.target.value)
-          }
-          required
-        />
+        <label>
+          Email address
+          <input
+            type="email"
+            placeholder="Enter your email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </label>
 
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) =>
-            setPassword(e.target.value)
-          }
-          required
-        />
+        <label>
+          Password
+          <div className="password-wrapper">
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Create password"
+              autoComplete="new-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
 
-        <button type="submit">
-          {loading
-            ? "Creating Account..."
-            : "Register"}
+            <button
+              className="password-toggle"
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              <EyeIcon hidden={!showPassword} />
+            </button>
+          </div>
+        </label>
+
+        <button className="main-button" type="submit" disabled={loading}>
+          {loading ? "Creating Account..." : "Create Account"}
         </button>
 
-        <p>
-          Already have an account?{" "}
-          <Link to="/login">
-            Login
-          </Link>
+        <p className="switch">
+          Already have an account?
+          <Link to="/login">Log In</Link>
         </p>
       </form>
-    </div>
+    </AuthShell>
   )
 }
 

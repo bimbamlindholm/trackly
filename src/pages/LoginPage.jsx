@@ -1,5 +1,8 @@
 import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
+
+import AuthShell from "../components/AuthShell"
+import EyeIcon from "../components/EyeIcon"
 import { supabase } from "../services/supabaseClient"
 
 function LoginPage() {
@@ -8,9 +11,10 @@ function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
-  const handleLogin = async (e) => {
-    e.preventDefault()
+  const handleLogin = async (event) => {
+    event.preventDefault()
     setLoading(true)
 
     const { error } = await supabase.auth.signInWithPassword({
@@ -29,47 +33,73 @@ function LoginPage() {
   }
 
   return (
-    <div className="login-page">
-      <div className="login-card">
-        <h1>Welcome to Trackly</h1>
+    <AuthShell>
+      <form className="form-box login-box" onSubmit={handleLogin}>
+        <div className="top-form-logo">
+          <img src="/ICON-01.png" alt="Trackly logo" />
+        </div>
 
-        <p>
-          Track your time, attendance,
-          and salary in one simple app.
+        <h1>Welcome back</h1>
+        <p className="subtitle">
+          Log in with your email and password to continue.
         </p>
 
-        <form className="login-form" onSubmit={handleLogin}>
+        <label>
+          Email address
           <input
-            className="custom-input"
             type="email"
-            placeholder="Email address"
+            placeholder="Enter your email"
+            autoComplete="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(event) => setEmail(event.target.value)}
             required
           />
+        </label>
 
-          <input
-            className="custom-input"
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+        <label>
+          Password
+          <div className="password-wrapper">
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Enter your password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+            />
 
-          <button className="custom-button" type="submit">
-            {loading ? "Logging in..." : "Login"}
-          </button>
-        </form>
+            <button
+              className="password-toggle"
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              <EyeIcon hidden={!showPassword} />
+            </button>
+          </div>
+        </label>
 
-        <p className="auth-link">
-          Don&apos;t have an account? <Link to="/register">Create one</Link>
+        <div className="form-options">
+          <label className="checkbox-label">
+            <input type="checkbox" />
+            Remember me
+          </label>
+
+          <Link className="text-button" to="/forgot-password">
+            Forgot password?
+          </Link>
+        </div>
+
+        <button className="main-button" type="submit" disabled={loading}>
+          {loading ? "Logging in..." : "Log In"}
+        </button>
+
+        <p className="switch">
+          Don&apos;t have an account?
+          <Link to="/register">Register</Link>
         </p>
-        <p className="auth-link">
-          <Link to="/forgot-password">Forgot password?</Link>
-        </p>
-      </div>
-    </div>
+      </form>
+    </AuthShell>
   )
 }
 
