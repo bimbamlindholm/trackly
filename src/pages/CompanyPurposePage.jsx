@@ -5,7 +5,7 @@ function CompanyPurposePage() {
     <main className="landing-page page-enter">
       <nav className="landing-nav">
         <Link className="logo-button" to="/">
-          <img src="/ICON-01.png" alt="" />
+          <img src="/trackly-icon.png" alt="" />
           <span>Trackly</span>
         </Link>
       </nav>
@@ -13,7 +13,7 @@ function CompanyPurposePage() {
       <section className="choice-section">
         <div className="section-heading">
           <p className="eyebrow">Company Setup</p>
-          <h2>Are you the admin or a staff member?</h2>
+          <h2>Choose your company role</h2>
         </div>
 
         <div className="choice-grid">

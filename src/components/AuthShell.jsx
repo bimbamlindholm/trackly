@@ -11,7 +11,7 @@ function AuthShell({ children }) {
 
           <div className="brand">
             <div className="brand-logo">
-              <img src="/ICON-01.png" alt="Trackly logo" />
+              <img src="/trackly-icon.png" alt="Trackly logo" />
             </div>
 
             <div>
@@ -27,7 +27,7 @@ function AuthShell({ children }) {
             <div className="orbit-dot dot-two"></div>
 
             <div className="center-logo">
-              <img src="/ICON-01.png" alt="Trackly logo" />
+              <img src="/trackly-icon.png" alt="Trackly logo" />
             </div>
           </div>
 

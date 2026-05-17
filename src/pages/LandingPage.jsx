@@ -7,7 +7,7 @@ function LandingPage() {
     <main className="landing-page page-enter">
       <nav className="landing-nav">
         <Link className="logo-button" to="/" aria-label="Trackly home">
-          <img src="/ICON-01.png" alt="" />
+          <img src="/trackly-icon.png" alt="" />
           <span>Trackly</span>
         </Link>
 
@@ -22,7 +22,7 @@ function LandingPage() {
       <section className="hero-section">
         <div className="hero-copy">
           <p className="eyebrow">Daily Time Record System</p>
-          <h1>Track time clearly, work smarter daily.</h1>
+          <h1>Track time. Grow better.</h1>
           <p className="hero-text">
             Trackly helps employees record attendance, monitor daily hours, and
             review work logs through a clean and reliable DTR experience.
@@ -41,9 +41,11 @@ function LandingPage() {
 
         <div className="hero-preview" aria-label="Trackly dashboard preview">
           <div className="preview-topbar">
-            <span></span>
-            <span></span>
-            <span></span>
+            <img src="/trackly-icon.png" alt="" />
+            <div>
+              <strong>Today</strong>
+              <span>Ready for your shift</span>
+            </div>
           </div>
 
           <div className="clock-card">

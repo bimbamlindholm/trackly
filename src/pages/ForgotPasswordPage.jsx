@@ -32,7 +32,7 @@ function ForgotPasswordPage() {
     <AuthShell>
       <form className="form-box login-box" onSubmit={handleResetPassword}>
         <div className="top-form-logo">
-          <img src="/ICON-01.png" alt="Trackly logo" />
+          <img src="/trackly-icon.png" alt="Trackly logo" />
         </div>
 
         <h1>Reset Password</h1>

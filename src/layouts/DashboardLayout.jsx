@@ -33,7 +33,10 @@ function DashboardLayout({ children }) {
   return (
     <div className="app-layout">
       <aside className="sidebar">
-        <h2 className="logo">Trackly</h2>
+        <div className="logo">
+          <img src="/trackly-icon.png" alt="" />
+          <span>Trackly</span>
+        </div>
 
         <nav className="sidebar-nav">
           <span className="nav-group-label">My DTR</span>
@@ -56,6 +59,11 @@ function DashboardLayout({ children }) {
 
       <main className="main-content">
         <div className="topbar">
+          <div className="mobile-top-brand">
+            <img src="/trackly-icon.png" alt="" />
+            <span>Trackly</span>
+          </div>
+
           <div>
             <h3>{displayName}</h3>
             <p>

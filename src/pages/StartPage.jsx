@@ -5,7 +5,7 @@ function StartPage() {
     <main className="landing-page page-enter">
       <nav className="landing-nav">
         <Link className="logo-button" to="/">
-          <img src="/ICON-01.png" alt="" />
+          <img src="/trackly-icon.png" alt="" />
           <span>Trackly</span>
         </Link>
       </nav>
@@ -13,7 +13,7 @@ function StartPage() {
       <section className="choice-section">
         <div className="section-heading">
           <p className="eyebrow">Start Using Trackly</p>
-          <h2>How will you use Trackly?</h2>
+          <h2>Choose your Trackly setup</h2>
         </div>
 
         <div className="choice-grid">

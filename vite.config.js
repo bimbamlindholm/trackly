@@ -17,18 +17,18 @@ export default defineConfig({
         scope: '/',
         display: 'standalone',
         orientation: 'portrait-primary',
-        background_color: '#07110c',
-        theme_color: '#07110c',
+        background_color: '#f4f8fb',
+        theme_color: '#1fa7e8',
         categories: ['business', 'productivity', 'utilities'],
 
         icons: [
           {
-            src: '/ICON-01.png',
+            src: '/trackly-icon.png',
             sizes: '192x192',
             type: 'image/png',
           },
           {
-            src: '/ICON-01.png',
+            src: '/trackly-icon.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable',

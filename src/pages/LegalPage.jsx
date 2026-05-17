@@ -87,7 +87,7 @@ function LegalPage({ type }) {
     <main className="landing-page page-enter">
       <nav className="landing-nav">
         <Link className="logo-button" to="/">
-          <img src="/ICON-01.png" alt="" />
+          <img src="/trackly-icon.png" alt="" />
           <span>Trackly</span>
         </Link>
 
