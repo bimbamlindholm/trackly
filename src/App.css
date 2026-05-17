@@ -2512,6 +2512,31 @@ body.light .dashboard-page {
   }
 }
 
+.landing-page .nav-actions .nav-primary,
+.landing-page .hero-primary {
+  background: linear-gradient(135deg, var(--trackly-blue), var(--trackly-violet));
+  box-shadow: 0 16px 34px rgba(31, 167, 232, 0.24);
+}
+
+.landing-page .clock-card {
+  background: linear-gradient(135deg, #1fa7e8, #7153f5);
+  box-shadow: 0 18px 38px rgba(113, 83, 245, 0.18);
+}
+
+.landing-page .hero-preview {
+  background:
+    linear-gradient(180deg, rgba(31, 167, 232, 0.07), rgba(113, 83, 245, 0.04)),
+    var(--trackly-surface);
+}
+
+.landing-page .hero-preview::before {
+  background: linear-gradient(135deg, rgba(113, 83, 245, 0.16), rgba(31, 167, 232, 0.15));
+}
+
+.landing-page .quick-actions-grid div {
+  background: linear-gradient(180deg, #ffffff, #f7fbff);
+}
+
 @keyframes pageEnter {
   from {
     opacity: 0;
