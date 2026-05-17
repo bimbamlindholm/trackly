@@ -76,6 +76,8 @@ function RegisterPage() {
         <label>
           Full name
           <input
+            id="register-name"
+            name="name"
             type="text"
             placeholder="Enter your full name"
             autoComplete="name"
@@ -88,6 +90,8 @@ function RegisterPage() {
         <label>
           Email address
           <input
+            id="register-email"
+            name="email"
             type="email"
             placeholder="Enter your email"
             autoComplete="email"
@@ -101,6 +105,8 @@ function RegisterPage() {
           Password
           <div className="password-wrapper">
             <input
+              id="register-password"
+              name="password"
               type={showPassword ? "text" : "password"}
               placeholder="Create password"
               autoComplete="new-password"

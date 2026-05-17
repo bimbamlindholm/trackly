@@ -44,6 +44,8 @@ function ForgotPasswordPage() {
         <label>
           Email address
           <input
+            id="reset-email"
+            name="email"
             type="email"
             placeholder="Enter your email"
             autoComplete="email"

@@ -2669,7 +2669,7 @@ body.light .dashboard-page {
 .auth-legal-links a,
 .legal-links a,
 .public-footer a {
-  color: var(--trackly-blue);
+  color: var(--trackly-blue) !important;
 }
 
 .delete-record-button,

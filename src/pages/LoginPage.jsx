@@ -63,6 +63,8 @@ function LoginPage() {
         <label>
           Email address
           <input
+            id="login-email"
+            name="email"
             type="email"
             placeholder="Enter your email"
             autoComplete="email"
@@ -76,6 +78,8 @@ function LoginPage() {
           Password
           <div className="password-wrapper">
             <input
+              id="login-password"
+              name="password"
               type={showPassword ? "text" : "password"}
               placeholder="Enter your password"
               autoComplete="current-password"
@@ -96,8 +100,8 @@ function LoginPage() {
         </label>
 
         <div className="form-options">
-          <label className="checkbox-label">
-            <input type="checkbox" />
+          <label className="checkbox-label" htmlFor="login-remember">
+            <input id="login-remember" name="remember" type="checkbox" />
             Remember me
           </label>
 
