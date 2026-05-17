@@ -64,7 +64,7 @@ function DashboardLayout({ children }) {
             <span>Trackly</span>
           </div>
 
-          <div>
+          <div className="topbar-user">
             <h3>{displayName}</h3>
             <p>
               {activeOrganization
@@ -72,6 +72,14 @@ function DashboardLayout({ children }) {
                 : user?.email}
             </p>
           </div>
+
+          <button
+            className="mobile-logout-button"
+            type="button"
+            onClick={handleLogout}
+          >
+            Logout
+          </button>
         </div>
 
         {children}
